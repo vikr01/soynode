@@ -85,7 +85,7 @@ function findFiles(directory, extension, callback) {
  * The main public API of soynode.
  * @constructor
  */
-class SoyCompiler {
+export default class SoyCompiler {
   constructor() {
     this._defaultOptions = new SoyOptions();
 
@@ -726,5 +726,3 @@ class SoyCompiler {
     return Promise.resolve(true);
   }
 }
-
-export default SoyCompiler;
