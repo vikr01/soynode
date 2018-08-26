@@ -16,3 +16,6 @@ node_modules
 npm-debug.log
 
 lib
+
+/test/tmp1
+/test/tmp2
