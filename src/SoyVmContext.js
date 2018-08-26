@@ -104,91 +104,6 @@ const RESET_DELTEMPLATE_REGISTRY_CODE =
   'soy.$$DELEGATE_REGISTRY_FUNCTIONS_ = {};';
 
 /**
- * An abstract API over a soynode VM context.
- *
- * SoyNode operates by creating a VM sandbox, and loading the soy functions into
- * that sandbox. If you use SoyNode's i18n features, you may have multiple sandboxes,
- * one for each locale.
- *
- * @param {string} name
- * @param {SoyOptions} options
- * @constructor
- */
-function SoyVmContext(name, options) {
-  /** @private {string} */
-  this._name = name;
-
-  /** @private {SoyOptions} */
-  this._options = options;
-
-  /**
-   * A cache for function pointers returned by the vm.runInContext call.  Caching the reference
-   * results in a 10x speed improvement, over calling getting the function each time.
-   * @type {Object}
-   */
-  this._templateCache = {};
-
-  this._context = vm.createContext({});
-
-  /** @private {boolean} Whether the context has been initialized with soyutils */
-  this._contextInitialized = false;
-}
-
-/**
- * The unique name of the sandbox.
- * @return {string}
- */
-SoyVmContext.prototype.getName = function() {
-  return this._name;
-};
-
-/**
- * @return {Object} Get the internal vm context. Useful for injecting globals
- *     manually into the context.
- * @return {Object}
- */
-SoyVmContext.prototype.getContext = function() {
-  return this._context;
-};
-
-/**
- * @param {Object} context Sets the context. Useful for injecting globals
- *     manually into the context, but beware of overwriting the soy support code.
- */
-SoyVmContext.prototype.setContext = function(context) {
-  this._context = context;
-};
-
-/**
- * Gets a reference to a template function.
- *
- * Note: If dynamic recompilation is enabled the reference will not get updated.
- *
- * @param {string} templateName
- * @return {function (Object) : string}
- */
-SoyVmContext.prototype.get = function(templateName) {
-  if (!this._options.loadCompiledTemplates)
-    throw new Error(
-      'soynode: Cannot load template, try with `loadCompiledTemplates: true`.'
-    );
-
-  if (!this._templateCache[templateName]) {
-    let template;
-    try {
-      template = vm.runInContext(templateName, this.getContext(), 'soynode.vm');
-    } catch (e) {
-      // Fallthrough
-    }
-
-    if (!template)
-      throw new Error(`soynode: Unknown template [${templateName}]`);
-    this._templateCache[templateName] = template;
-  }
-  return this._templateCache[templateName];
-};
-
-/**
  * @param {VmContext} context a vm context
  * @param {Array.<Promise>} filePromises Promises of {path, contents} tuples
  * @return {Promise.Promise}
@@ -214,47 +129,136 @@ function loadFiles(context, filePromises) {
 }
 
 /**
- * Loads an array of template files into memory.
- * @param {Array.<string>} files
- * @param {function (Error, boolean)=} callback
+ * An abstract API over a soynode VM context.
+ *
+ * SoyNode operates by creating a VM sandbox, and loading the soy functions into
+ * that sandbox. If you use SoyNode's i18n features, you may have multiple sandboxes,
+ * one for each locale.
+ *
+ * @param {string} name
+ * @param {SoyOptions} options
+ * @constructor
  */
-SoyVmContext.prototype.loadCompiledTemplateFiles = function(files, callback) {
-  const options = this._options;
-  const self = this;
+export default class SoyVmContext {
+  constructor(name, options) {
+    /** @private {string} */
+    this._name = name;
 
-  // load the contextJsPaths into the context before the soy template JS
-  const filePromises = pathsToPromises(options.contextJsPaths.concat(files));
-  const supportedFilePromises = getSupportFilePromises();
+    /** @private {SoyOptions} */
+    this._options = options;
 
-  let result = Promise.resolve(true);
-  if (self._contextInitialized) {
-    result = (async () => {
-      vm.runInContext(
-        RESET_DELTEMPLATE_REGISTRY_CODE,
-        self.getContext(),
-        'soynode-reset.'
-      );
-    })();
-  } else {
-    result = result
-      .then(() => loadFiles(self.getContext(), supportedFilePromises))
-      .then(() => {
-        self._contextInitialized = true;
-        return null;
-      });
+    /**
+     * A cache for function pointers returned by the vm.runInContext call.  Caching the reference
+     * results in a 10x speed improvement, over calling getting the function each time.
+     * @type {Object}
+     */
+    this._templateCache = {};
+
+    this._context = vm.createContext({});
+
+    /** @private {boolean} Whether the context has been initialized with soyutils */
+    this._contextInitialized = false;
   }
 
-  result
-    .then(() => loadFiles(self.getContext(), filePromises))
-    .then(
-      finalResult => {
-        // Blow away the cache when all files have been loaded
-        self._templateCache = {};
-        return callback(null, finalResult);
-      },
-      err => callback(err)
-    )
-    .catch(err => callback(err));
-};
+  /**
+   * The unique name of the sandbox.
+   * @return {string}
+   */
+  getName() {
+    return this._name;
+  }
 
-export default SoyVmContext;
+  /**
+   * @return {Object} Get the internal vm context. Useful for injecting globals
+   *     manually into the context.
+   * @return {Object}
+   */
+  getContext() {
+    return this._context;
+  }
+
+  /**
+   * @param {Object} context Sets the context. Useful for injecting globals
+   *     manually into the context, but beware of overwriting the soy support code.
+   */
+  setContext(context) {
+    this._context = context;
+  }
+
+  /**
+   * Gets a reference to a template function.
+   *
+   * Note: If dynamic recompilation is enabled the reference will not get updated.
+   *
+   * @param {string} templateName
+   * @return {function (Object) : string}
+   */
+  get(templateName) {
+    if (!this._options.loadCompiledTemplates)
+      throw new Error(
+        'soynode: Cannot load template, try with `loadCompiledTemplates: true`.'
+      );
+
+    if (!this._templateCache[templateName]) {
+      let template;
+      try {
+        template = vm.runInContext(
+          templateName,
+          this.getContext(),
+          'soynode.vm'
+        );
+      } catch (e) {
+        // Fallthrough
+      }
+
+      if (!template)
+        throw new Error(`soynode: Unknown template [${templateName}]`);
+      this._templateCache[templateName] = template;
+    }
+    return this._templateCache[templateName];
+  }
+
+  /**
+   * Loads an array of template files into memory.
+   * @param {Array.<string>} files
+   * @param {function (Error, boolean)=} callback
+   */
+  loadCompiledTemplateFiles(files, callback) {
+    const options = this._options;
+    const self = this;
+
+    // load the contextJsPaths into the context before the soy template JS
+    const filePromises = pathsToPromises(options.contextJsPaths.concat(files));
+    const supportedFilePromises = getSupportFilePromises();
+
+    let result = Promise.resolve(true);
+    if (self._contextInitialized) {
+      result = (async () => {
+        vm.runInContext(
+          RESET_DELTEMPLATE_REGISTRY_CODE,
+          self.getContext(),
+          'soynode-reset.'
+        );
+      })();
+    } else {
+      result = result
+        .then(() => loadFiles(self.getContext(), supportedFilePromises))
+        .then(() => {
+          self._contextInitialized = true;
+          return null;
+        });
+    }
+
+    result
+      .then(() => loadFiles(self.getContext(), filePromises))
+      .then(
+        finalResult => {
+          // Blow away the cache when all files have been loaded
+          self._templateCache = {};
+          return callback(null, finalResult);
+        },
+        err => callback(err)
+      )
+      .catch(err => callback(err));
+  }
+}
