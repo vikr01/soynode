@@ -1,20 +1,24 @@
 {
-  "name" : "soynode",
-  "version" : "2.1.0",
-  "description" : "Utility for working with Closure Templates, aka Soy, from within a node.js application.",
-  "keywords" : ["node", "soy", "templates", "closure"],
-  "repository" : {
-    "type" : "git",
-    "url" : "http://github.com/Medium/soynode.git"
+  "name": "soynode",
+  "description": "Utility for working with Closure Templates, aka Soy, from within a node.js application.",
+  "license": "Apache-2.0",
+  "author": "Daniel Pupius <dan@medium.com> (https://github.com/dpup)",
+  "homepage": "https://github.com/Medium/soynode",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/Medium/soynode.git"
   },
-  "homepage" : "https://github.com/Medium/soynode",
-  "author" : {
-    "name" : "Daniel Pupius",
-    "email" : "dan@medium.com",
-    "url" : "https://github.com/dpup"
+  "version": "2.1.0",
+  "main": "./lib/soynode.js",
+  "directories": {
+    "lib": "./lib"
   },
-  "main" : "./lib/soynode.js",
-  "directories": {"lib": "./lib"},
+  "scripts": {
+    "lint": "eslint './**/*.js'",
+    "lint-fix": "yarn run lint --fix",
+    "postlint-fix": "prettier --ignore-path .eslintignore --write './**/*.js'",
+    "test": "yarn run lint && : #more tests go here"
+  },
   "dependencies": {
     "closure-templates": "^20160825.0.0",
     "fs-extra": "1.0.0",
@@ -22,12 +26,56 @@
     "q": "1.4.1"
   },
   "devDependencies": {
-    "eslint": "1.6.0",
-    "nodeunit": "0.9.0",
-    "nodeunitq": "0.1.1"
+    "@babel/cli": "^7.0.0-rc.3",
+    "@babel/core": "^7.0.0-rc.3",
+    "@babel/preset-env": "^7.0.0-rc.3",
+    "@babel/preset-flow": "^7.0.0-rc.3",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "eslint": "^5.0.0-rc.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-flowtype": "^2.50.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-promise": "^4.0.0",
+    "husky": "^1.0.0-rc.13",
+    "lint-staged": "^7.2.2",
+    "prettier": "^1.14.2",
+    "prettier-package-json": "^2.0.0",
+    "yarn": "^1.9.4"
   },
-  "license": "Apache-2.0",
-  "scripts": {
-    "test": "node_modules/.bin/nodeunit test && eslint lib"
+  "keywords": [
+    "closure",
+    "node",
+    "soy",
+    "templates"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "linters": {
+      "*.{js,jsx}": [
+        "eslint --fix",
+        "prettier --ignore-path .eslintignore --write",
+        "git add"
+      ],
+      "{*.json,.{babelrc,eslintrc,prettierrc}}": [
+        "prettier --ignore-path .eslintignore --parser json --write",
+        "git add"
+      ],
+      "*.{css,scss}": [
+        "prettier --ignore-path .eslintignore --write",
+        "git add"
+      ],
+      "*.{yml,less,md}": [
+        "prettier --ignore-path .eslintignore --write",
+        "git add"
+      ],
+      "package.json": [
+        "prettier-package-json --write",
+        "git add"
+      ]
+    }
   }
 }

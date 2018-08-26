@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    ".babelrc": "jsonc",
+    ".eslintrc": "jsonc",
+
+    ".eslintignore": "ignore"
+  }
+}

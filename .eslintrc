@@ -1,26 +1,38 @@
 {
-    "rules": {
-        "no-console": 0,
-        "quotes": [
-            2,
-            "single"
-        ],
-        "linebreak-style": [
-            2,
-            "unix"
-        ],
-        "semi": [
-            2,
-            "never"
-        ],
-        "no-unused-vars": [
-            2,
-            {"args": "after-used", "argsIgnorePattern": "^var_args$"}
-        ],
-        "no-constant-condition": [0]
+  "env": {
+    "node": true,
+    "browser": false,
+    "commonjs": false,
+    "es6": true
+  },
+  "plugins": ["babel", "import", "flowtype", "promise"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:flowtype/recommended",
+    "plugin:promise/recommended",
+    "airbnb-base",
+    "prettier"
+  ],
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "experimentalObjectRestSpread": true
     },
-    "env": {
-        "node": true
-    },
-    "extends": "eslint:recommended"
+    "sourceType": "module"
+  },
+  "rules": {
+    "comma-dangle": [
+      "error",
+      "always-multiline",
+      { "functions": "never", "exports": "ignore", "imports": "ignore" }
+    ],
+    // "import/named": 0,
+    "import/no-commonjs": "error",
+    // "import/no-dynamic-require": "error",
+    "no-console": 0,
+    "no-debugger": 0,
+    "quotes": ["error", "single", { "avoidEscape": true }]
+  }
 }
