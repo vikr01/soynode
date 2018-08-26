@@ -1,1 +1,1 @@
-var template1 = {};
+const template1 = {};
