@@ -4,7 +4,6 @@ import fs from 'fs';
 import vm from 'vm';
 import path from 'path';
 import closureTemplates from 'closure-templates';
-import closureLibrary from 'obvious-closure-library';
 import { promisify } from 'util';
 
 /**
@@ -68,7 +67,9 @@ const CLOSURE_PATHS = [
   'closure/goog/soy/data.js',
   'closure/goog/soy/soy.js',
   'closure/goog/string/stringbuffer.js',
-].map(file => path.join(closureLibrary.dirname, file));
+].map(file =>
+  path.join(require.resolve('google-closure-library/package.json'), '..', file)
+);
 
 function pathsToPromises(paths) {
   return paths.map(pathToPromise =>
