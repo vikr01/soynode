@@ -4,5 +4,9 @@
     ".eslintrc": "jsonc",
 
     ".eslintignore": "ignore"
-  }
+  },
+
+  "eslint.enable": true,
+  "eslint.workingDirectories": ["."],
+  "eslint.autoFixOnSave": true
 }

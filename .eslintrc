@@ -23,16 +23,24 @@
     "sourceType": "module"
   },
   "rules": {
+    "camelcase": 0,
     "comma-dangle": [
       "error",
       "always-multiline",
       { "functions": "never", "exports": "ignore", "imports": "ignore" }
     ],
+    "func-names": 0,
+    "guard-for-in": 0,
     // "import/named": 0,
     "import/no-commonjs": "error",
     // "import/no-dynamic-require": "error",
     "no-console": 0,
+    "no-continue": 0,
     "no-debugger": 0,
+    "no-param-reassign": 0,
+    "no-plusplus": 0,
+    "no-restricted-syntax": 0,
+    "no-underscore-dangle": 0,
     "quotes": ["error", "single", { "avoidEscape": true }]
   }
 }
