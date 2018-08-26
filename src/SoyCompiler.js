@@ -5,7 +5,7 @@ import childProcess, { exec } from 'child_process';
 import closureTemplates from 'closure-templates';
 import fs from 'fs-extra';
 import path from 'path';
-import Q from 'q';
+import { promisify } from 'util';
 import SoyVmContext from './SoyVmContext';
 import SoyOptions from './SoyOptions';
 import copy from './copy';
@@ -185,7 +185,7 @@ SoyCompiler.prototype.compileTemplateFiles = function(files, callback) {
         emitter
       );
     })
-    .done()
+
     .catch(err => {
       throw err;
     });
@@ -320,42 +320,41 @@ SoyCompiler.prototype._compileTemplateFilesAsync = function(
   let terminated = false;
   const self = this;
 
-  function runCompiler() {
-    if (!dirtyFiles.length) {
-      return Q.resolve(true);
-    }
-
-    const deferred = Q.defer();
-
-    let stderr = '';
-
-    function onExit(exitCode) {
-      if (terminated) return;
-
-      if (exitCode !== 0) {
-        // Log all the errors and execute the callback with a generic error object.
-        terminated = true;
-        console.error('soynode: Compile error\n', stderr);
-        deferred.reject(new Error('Error compiling templates'));
-      } else {
-        deferred.resolve(true);
+  async function runCompiler() {
+    return new Promise((resolve, reject) => {
+      if (!dirtyFiles.length) {
+        return resolve(true);
       }
-    }
 
-    // Execute the command inside the input directory.
-    const cp = childProcess.spawn('java', args, { cwd: inputDir });
+      let stderr = '';
 
-    cp.stderr.on('data', data => {
-      stderr += data;
+      function onExit(exitCode) {
+        if (terminated) return null;
+
+        if (exitCode !== 0) {
+          // Log all the errors and execute the callback with a generic error object.
+          terminated = true;
+          console.error('soynode: Compile error\n', stderr);
+          return reject(new Error('Error compiling templates'));
+        }
+        return resolve(true);
+      }
+
+      // Execute the command inside the input directory.
+      const cp = childProcess.spawn('java', args, { cwd: inputDir });
+
+      cp.stderr.on('data', data => {
+        stderr += data;
+      });
+
+      cp.on('error', err => {
+        stderr += String(err);
+        onExit(1);
+      });
+
+      cp.on('exit', onExit);
+      return null;
     });
-
-    cp.on('error', err => {
-      stderr += String(err);
-      onExit(1);
-    });
-
-    cp.on('exit', onExit);
-    return deferred.promise;
   }
 
   return runCompiler().then(() => {
@@ -366,13 +365,13 @@ SoyCompiler.prototype._compileTemplateFilesAsync = function(
 
     function next() {
       if (vmTypes.length === 0) {
-        return Q.resolve(true);
+        return Promise.resolve(true);
       }
       return self
         ._postCompileProcess(outputDir, allFiles, vmTypes.pop())
         .then(next);
     }
-    return next().fail(err => {
+    return next().catch(err => {
       console.error('Error post-processing templates', err);
       throw err;
     });
@@ -447,7 +446,7 @@ SoyCompiler.prototype._compileTemplatesAndEmit = function(inputDir, emitter) {
           emitter
         );
       })
-      .done()
+
       .catch(error => {
         throw error;
       });
@@ -529,7 +528,7 @@ SoyCompiler.prototype._maybeSetupDynamicRecompile = function(
     return;
   }
 
-  let currentCompilePromise = Q.resolve(true);
+  let currentCompilePromise = Promise.resolve(true);
   let dirtyFileSet = {};
   const self = this;
   relativeFilePaths.forEach(relativeFile => {
@@ -542,7 +541,7 @@ SoyCompiler.prototype._maybeSetupDynamicRecompile = function(
         const now = Date.now();
         // Ignore spurious change events.
         console.log('soynode: caught change to ', file);
-        if (now - self._watches[file] < 1000) return Q.resolve(true);
+        if (now - self._watches[file] < 1000) return Promise.resolve(true);
 
         dirtyFileSet[relativeFile] = true;
         self._watches[file] = now;
@@ -568,7 +567,7 @@ SoyCompiler.prototype._maybeSetupDynamicRecompile = function(
               emitter
             );
           })
-          .fail(err => {
+          .catch(err => {
             console.warn('soynode: Error recompiling ', err);
           });
 
@@ -591,7 +590,7 @@ SoyCompiler.prototype._maybeSetupDynamicRecompile = function(
 SoyCompiler.prototype._maybeUsePrecompiledFiles = function(outputDir, files) {
   const { precompiledDir } = this._options;
   if (!precompiledDir) {
-    return Q.resolve(files);
+    return Promise.resolve(files);
   }
 
   let vmTypes = [DEFAULT_VM_CONTEXT];
@@ -601,10 +600,10 @@ SoyCompiler.prototype._maybeUsePrecompiledFiles = function(outputDir, files) {
   }
 
   const self = this;
-  return Q.resolve(true)
+  return Promise.resolve(true)
     .then(() =>
       // Return an array of files that don't have precompiled versions.
-      Q.all(
+      Promise.all(
         files.map(file =>
           self
             ._preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes)
@@ -622,7 +621,7 @@ SoyCompiler.prototype._maybeUsePrecompiledFiles = function(outputDir, files) {
       }
       return dirtyFiles;
     })
-    .fail(err => {
+    .catch(err => {
       console.error('Failed loading precompiled files', err);
       return files;
     });
@@ -644,7 +643,7 @@ SoyCompiler.prototype._preparePrecompiledFile = function(
   vmTypes
 ) {
   const self = this;
-  const precompiledFilesOkPromise = Q.all(
+  const precompiledFilesOkPromise = Promise.all(
     vmTypes.map(vmType => {
       const precompiledFileName = self._getOutputFile(
         precompiledDir,
@@ -653,8 +652,7 @@ SoyCompiler.prototype._preparePrecompiledFile = function(
       );
       const outputFileName = self._getOutputFile(outputDir, file, vmType);
 
-      const precompiledFileOkPromise = Q.nfcall(
-        fs.stat,
+      const precompiledFileOkPromise = promisify(fs.stat)(
         precompiledFileName
       ).then(
         exists => {
@@ -663,8 +661,8 @@ SoyCompiler.prototype._preparePrecompiledFile = function(
           }
 
           if (outputFileName !== precompiledFileName) {
-            return Q.nfcall(fs.mkdirs, path.dirname(outputFileName))
-              .then(() => Q.nfcall(copy, precompiledFileName, outputFileName))
+            return promisify(fs.mkdirs)(path.dirname(outputFileName))
+              .then(() => promisify(copy)(precompiledFileName, outputFileName))
               .then(() => true);
           }
           return true;
@@ -740,11 +738,11 @@ SoyCompiler.prototype._postCompileProcess = function(outputDir, files, vmType) {
 
   if (options.loadCompiledTemplates) {
     // Load the compiled templates into memory.
-    return Q.nfcall(
+    return promisify(
       this.loadCompiledTemplateFiles.bind(this, templatePaths, { vmType })
-    );
+    )();
   }
-  return Q.resolve(true);
+  return Promise.resolve(true);
 };
 
 export default SoyCompiler;

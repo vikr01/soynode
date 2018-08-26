@@ -1,11 +1,11 @@
 // Copyright 2014. A Medium Corporation.
 
-import Q from 'q';
 import fs from 'fs';
 import vm from 'vm';
 import path from 'path';
 import closureTemplates from 'closure-templates';
 import closureLibrary from 'obvious-closure-library';
+import { promisify } from 'util';
 
 /**
  * Resolved path to Soy utils JS script.
@@ -72,7 +72,7 @@ const CLOSURE_PATHS = [
 
 function pathsToPromises(paths) {
   return paths.map(pathToPromise =>
-    Q.nfcall(fs.readFile, pathToPromise, 'utf8').then(contents => ({
+    promisify(fs.readFile)(pathToPromise, 'utf8').then(contents => ({
       path: pathToPromise,
       contents,
     }))
@@ -191,7 +191,7 @@ SoyVmContext.prototype.get = function(templateName) {
 /**
  * @param {VmContext} context a vm context
  * @param {Array.<Promise>} filePromises Promises of {path, contents} tuples
- * @return {Q.Promise}
+ * @return {Promise.Promise}
  */
 function loadFiles(context, filePromises) {
   let i = 0;
@@ -202,13 +202,13 @@ function loadFiles(context, filePromises) {
     vm.runInContext(result.contents, context, result.path);
 
     if (i >= filePromises.length) {
-      return Q.resolve(true);
+      return Promise.resolve(true);
     }
     return filePromises[i++].then(next);
   }
 
   if (!filePromises.length) {
-    return Q.resolve(true);
+    return Promise.resolve(true);
   }
   return filePromises[i++].then(next);
 }
@@ -226,15 +226,15 @@ SoyVmContext.prototype.loadCompiledTemplateFiles = function(files, callback) {
   const filePromises = pathsToPromises(options.contextJsPaths.concat(files));
   const supportedFilePromises = getSupportFilePromises();
 
-  let result = Q.resolve(true);
+  let result = Promise.resolve(true);
   if (self._contextInitialized) {
-    result = Q.fcall(() => {
+    result = (async () => {
       vm.runInContext(
         RESET_DELTEMPLATE_REGISTRY_CODE,
         self.getContext(),
         'soynode-reset.'
       );
-    });
+    })();
   } else {
     result = result
       .then(() => loadFiles(self.getContext(), supportedFilePromises))
