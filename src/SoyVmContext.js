@@ -85,10 +85,12 @@ let supportFilePromises = null;
 /**
  * @return {Array.<Promise.<string>>} Promises for the file contents of closure/soy support code.
  */
-function getSupportFilePromises() {
+function getSupportFilePromises(soyUtilsPath) {
   if (supportFilePromises) return supportFilePromises;
 
-  const paths = CLOSURE_PATHS.concat([SOY_UTILS_PATH]);
+  soyUtilsPath = soyUtilsPath || SOY_UTILS_PATH;
+
+  const paths = CLOSURE_PATHS.concat([soyUtilsPath]);
   supportFilePromises = pathsToPromises(paths);
   return supportFilePromises;
 }
@@ -230,7 +232,7 @@ export default class SoyVmContext {
 
     // load the contextJsPaths into the context before the soy template JS
     const filePromises = pathsToPromises(options.contextJsPaths.concat(files));
-    const supportedFilePromises = getSupportFilePromises();
+    const supportedFilePromises = getSupportFilePromises(options.soyUtilsPath);
 
     let result = Promise.resolve(true);
     if (self._contextInitialized) {
