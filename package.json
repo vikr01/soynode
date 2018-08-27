@@ -24,8 +24,7 @@
   "dependencies": {
     "closure-templates": "^20160825.0.0",
     "fs-extra": "1.0.0",
-    "google-closure-library": "^20180805.0.0",
-    "q": "1.4.1"
+    "google-closure-library": "^20180805.0.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0-rc.3",
