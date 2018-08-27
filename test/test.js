@@ -405,36 +405,39 @@ describe('Basic', () => {
       });
   });
 
-  it('test dynamic recompile when event handler throws', async done => {
+  it('test dynamic recompile when event handler throws', async function() {
+    this.timeout(3000);
     soyCompiler.setOptions({ allowDynamicRecompile: true });
-    const errToThrow = new Error('Deliberately thrown error');
+
+    const errToThrow = 'Deliberately thrown error';
+    let errorWasThrown = false;
     try {
       await new Promise((resolve, reject) => {
-        function callback(err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(null);
-          }
-        }
+        const callback = function(err) {
+          return err ? reject(err) : resolve(null);
+        };
         const emitter = soyCompiler.compileTemplates(
           `${__dirname}/assets`,
           callback
         );
         emitter.on('compile', () => {
-          reject(errToThrow);
+          errorWasThrown = true;
+          throw errToThrow;
         });
       });
     } catch (err) {
-      console.log('found an err ', err);
-      assert.equal(err, errToThrow);
+      assert.equal(err.message, errToThrow.message);
     }
+
+    assert.equal(errorWasThrown, true);
+
     const args1 = spawnArgs.slice(0)[0];
     assert.equal('template3.soy', args1.pop());
 
     time += 1000;
     await delay(1);
     await watchCallbacks[1]();
+
     const args2 = spawnArgs.slice(0)[0];
     assert.equal('template2.soy', args2.pop());
     time += 1000;
@@ -442,6 +445,5 @@ describe('Basic', () => {
     await watchCallbacks[0]();
     const args3 = spawnArgs.slice(0)[0];
     assert.equal('template1.soy', args3.pop());
-    done();
   });
 });
