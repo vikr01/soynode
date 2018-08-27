@@ -433,16 +433,18 @@ describe('Basic', () => {
 
     const args1 = spawnArgs.slice(0)[0];
     assert.equal('template3.soy', args1.pop());
-
     time += 1000;
     await delay(1);
+
     await watchCallbacks[1]();
 
     const args2 = spawnArgs.slice(0)[0];
     assert.equal('template2.soy', args2.pop());
     time += 1000;
     await delay(1);
+
     await watchCallbacks[0]();
+
     const args3 = spawnArgs.slice(0)[0];
     assert.equal('template1.soy', args3.pop());
   });
