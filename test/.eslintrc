@@ -1,0 +1,12 @@
+{
+  "plugins": ["mocha"],
+  "globals": {
+    "afterEach": true,
+    "beforeEach": true,
+    "describe": true,
+    "it": true
+  },
+  "rules": {
+    "prefer-rest-params": 1
+  }
+}
