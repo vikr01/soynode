@@ -1,7 +1,6 @@
 import child_process from 'child_process';
 import fs, { watchFile } from 'fs-extra';
 import path from 'path';
-import Q from 'q';
 import delay from 'delay';
 import assert from 'assert';
 import { promisify } from 'util';
@@ -114,85 +113,81 @@ describe('Basic', () => {
     });
   });
 
-  it('test compile templates watch', () => {
+  it('test compile templates watch', async () => {
     soyCompiler.setOptions({ allowDynamicRecompile: true });
-    return promisify(soyCompiler.compileTemplates)
-      .bind(soyCompiler)(`${__dirname}/assets`)
-      .then(() => {
-        assert.deepEqual(
-          ['template1.soy', 'template2.soy', 'template3.soy'],
-          watchFiles.map(f => path.basename(f))
-        );
-        assert.deepEqual([{ cwd: `${__dirname}/assets` }], spawnOpts);
+    await promisify(soyCompiler.compileTemplates).bind(soyCompiler)(
+      `${__dirname}/assets`
+    );
+    assert.deepEqual(
+      ['template1.soy', 'template2.soy', 'template3.soy'],
+      watchFiles.map(f => path.basename(f))
+    );
+    assert.deepEqual([{ cwd: `${__dirname}/assets` }], spawnOpts);
 
-        const args = spawnArgs[0];
-        assert.deepEqual(
-          ['template1.soy', 'template2.soy', 'template3.soy'],
-          args.slice(args.length - 3, args.length)
-        );
+    const args1 = spawnArgs[0];
+    assert.deepEqual(
+      ['template1.soy', 'template2.soy', 'template3.soy'],
+      args1.slice(args1.length - 3, args1.length)
+    );
 
-        time += 1000;
-        return delay(1);
-      })
-      .then(() => watchCallbacks[1]())
-      .then(() => {
-        assert.deepEqual(
-          ['template1.soy', 'template2.soy', 'template3.soy'],
-          watchFiles.map(f => path.basename(f))
-        );
-        assert.deepEqual(
-          [{ cwd: `${__dirname}/assets` }, { cwd: `${__dirname}/assets` }],
-          spawnOpts
-        );
+    time += 1000;
+    await delay(1);
+    await watchCallbacks[1]();
 
-        const args = spawnArgs[1];
-        const secondLastArg = args[args.length - 2];
-        assert.ok(secondLastArg.indexOf('/tmp/soynode') === 0);
+    assert.deepEqual(
+      ['template1.soy', 'template2.soy', 'template3.soy'],
+      watchFiles.map(f => path.basename(f))
+    );
+    assert.deepEqual(
+      [{ cwd: `${__dirname}/assets` }, { cwd: `${__dirname}/assets` }],
+      spawnOpts
+    );
 
-        const lastArg = args[args.length - 1];
-        assert.equal('template2.soy', lastArg);
-        return null;
-      });
+    const args2 = spawnArgs[1];
+    const secondLastArg = args2[args2.length - 2];
+    assert.ok(secondLastArg.indexOf('/tmp/soynode') === 0);
+
+    const lastArg = args2[args2.length - 1];
+    assert.equal('template2.soy', lastArg);
+    return null;
   });
 
-  it('test compile templates watch del template', () => {
+  it('test compile templates watch del template', async () => {
     soyCompiler.setOptions({ allowDynamicRecompile: true });
-    return promisify(soyCompiler.compileTemplates)
-      .bind(soyCompiler)(`${__dirname}/assets`)
-      .then(() => {
-        assert.equal(
-          'The default template',
-          soyCompiler.render('template3.main', {})
-        );
-        assert.equal(
-          'Hello world',
-          soyCompiler.render('template3.main', { type: 'hello' })
-        );
-        assert.equal(
-          'The default template',
-          soyCompiler.render('template3.main', { type: 'goodbye' })
-        );
+    await promisify(soyCompiler.compileTemplates).bind(soyCompiler)(
+      `${__dirname}/assets`
+    );
 
-        time += 1000;
-        return delay(1);
-      })
-      .then(() => watchCallbacks[1]())
-      .then(() => {
-        assert.equal(
-          'The default template',
-          soyCompiler.render('template3.main', {})
-        );
-        assert.equal(
-          'Hello world',
-          soyCompiler.render('template3.main', { type: 'hello' })
-        );
-        assert.equal(
-          'The default template',
-          soyCompiler.render('template3.main', { type: 'goodbye' })
-        );
+    assert.equal(
+      'The default template',
+      soyCompiler.render('template3.main', {})
+    );
+    assert.equal(
+      'Hello world',
+      soyCompiler.render('template3.main', { type: 'hello' })
+    );
+    assert.equal(
+      'The default template',
+      soyCompiler.render('template3.main', { type: 'goodbye' })
+    );
 
-        return null;
-      });
+    time += 1000;
+    await delay(1);
+
+    await watchCallbacks[1]();
+
+    assert.equal(
+      'The default template',
+      soyCompiler.render('template3.main', {})
+    );
+    assert.equal(
+      'Hello world',
+      soyCompiler.render('template3.main', { type: 'hello' })
+    );
+    assert.equal(
+      'The default template',
+      soyCompiler.render('template3.main', { type: 'goodbye' })
+    );
   });
 
   it('test compile template files', done => {
@@ -320,31 +315,30 @@ describe('Basic', () => {
     );
   });
 
-  it('test precompile templates one compiler', () => {
+  it('test precompile templates one compiler', async () => {
     soyCompiler.setOptions({
       outputDir: tmpDir1,
       uniqueDir: false,
       precompiledDir: tmpDir1,
     });
 
-    return Q.nfcall(
-      soyCompiler.compileTemplates.bind(soyCompiler, `${__dirname}/assets`)
-    )
-      .then(() => {
-        assert.equal(1, spawnOpts.length);
-        return Q.nfcall(
-          soyCompiler.compileTemplates.bind(soyCompiler, `${__dirname}/assets`)
-        );
-      })
-      .then(() => {
-        // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
-        assert.equal(1, spawnOpts.length);
-        assertTemplatesContents(null, soyCompiler);
-        return null;
-      });
+    await promisify(soyCompiler.compileTemplates).bind(
+      soyCompiler,
+      `${__dirname}/assets`
+    )();
+
+    assert.equal(1, spawnOpts.length);
+    await promisify(soyCompiler.compileTemplates).bind(
+      soyCompiler,
+      `${__dirname}/assets`
+    )();
+
+    // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
+    assert.equal(1, spawnOpts.length);
+    assertTemplatesContents(null, soyCompiler);
   });
 
-  it('test precompile templates two compilers', () => {
+  it('test precompile templates two compilers', async () => {
     soyCompiler.setOptions({
       outputDir: tmpDir1,
       uniqueDir: false,
@@ -357,28 +351,23 @@ describe('Basic', () => {
       uniqueDir: false,
     });
 
-    return Q.nfcall(
-      soyCompiler.compileTemplates.bind(soyCompiler, `${__dirname}/assets`)
-    )
-      .then(() => {
-        assert.equal(1, spawnOpts.length);
-        return Q.nfcall(
-          soyCompilerB.compileTemplates.bind(
-            soyCompilerB,
-            `${__dirname}/assets`
-          )
-        );
-      })
-      .then(() => {
-        // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
-        assert.equal(1, spawnOpts.length);
-        assertTemplatesContents(null, soyCompiler);
-        assertTemplatesContents(null, soyCompilerB);
-        return null;
-      });
+    await promisify(soyCompiler.compileTemplates).bind(
+      soyCompiler,
+      `${__dirname}/assets`
+    )();
+
+    assert.equal(1, spawnOpts.length);
+    await promisify(soyCompilerB.compileTemplates).bind(soyCompilerB)(
+      `${__dirname}/assets`
+    );
+
+    // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
+    assert.equal(1, spawnOpts.length);
+    assertTemplatesContents(null, soyCompiler);
+    assertTemplatesContents(null, soyCompilerB);
   });
 
-  it('test precompile templates one compiler mult languages', () => {
+  it('test precompile templates one compiler mult languages', async () => {
     soyCompiler.setOptions({
       outputDir: tmpDir1,
       uniqueDir: false,
@@ -387,22 +376,19 @@ describe('Basic', () => {
       messageFilePathFormat: `${__dirname}/assets/translations_{LOCALE}.xlf`,
     });
 
-    return Q.nfcall(
-      soyCompiler.compileTemplates.bind(soyCompiler, `${__dirname}/assets`)
-    )
-      .then(() => {
-        assert.equal(1, spawnOpts.length);
-        return Q.nfcall(
-          soyCompiler.compileTemplates.bind(soyCompiler, `${__dirname}/assets`)
-        );
-      })
-      .then(() => {
-        // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
-        assert.equal(1, spawnOpts.length);
-        assertTemplatesContents('es');
-        assertTemplatesContents('pt-BR');
-        return null;
-      });
+    await promisify(soyCompiler.compileTemplates).bind(soyCompiler)(
+      `${__dirname}/assets`
+    );
+
+    assert.equal(1, spawnOpts.length);
+    await promisify(soyCompiler.compileTemplates).bind(soyCompiler)(
+      `${__dirname}/assets`
+    );
+
+    // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
+    assert.equal(1, spawnOpts.length);
+    assertTemplatesContents('es');
+    assertTemplatesContents('pt-BR');
   });
 
   it('test dynamic recompile when event handler throws', async function() {
