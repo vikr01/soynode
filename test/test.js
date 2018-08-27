@@ -7,6 +7,7 @@ var soynode = require('../lib/soynode.js');
 var nodeunitq = require('nodeunitq')
 var builder = new nodeunitq.Builder(exports)
 var Q = require('q')
+var delay = require('delay');
 
 var watchFile = fs.watchFile
 var now = Date.now
@@ -74,7 +75,7 @@ builder.add(function testCompileTemplatesWatch(test) {
                    args.slice(args.length - 3, args.length))
 
     time += 1000
-    return Q.delay(1)
+    return delay(1)
   }).then(function () {
     return watchCallbacks[1]()
   }).then(function () {
@@ -100,7 +101,7 @@ builder.add(function testCompileTemplatesWatchDelTemplate(test) {
     test.equal('The default template', soyCompiler.render('template3.main', {type: 'goodbye'}))
 
     time += 1000
-    return Q.delay(1)
+    return delay(1)
   }).then(function () {
     return watchCallbacks[1]()
   }).then(function () {
@@ -287,14 +288,14 @@ builder.add(function testDynamicRecompileWhenEventHandlerThrows(test) {
     test.equal('template3.soy', args.pop())
 
     time += 1000
-    return Q.delay(1)
+    return delay(1)
   }).then(function () {
     return watchCallbacks[1]()
   }).then(function () {
     var args = spawnArgs.slice(0)[0]
     test.equal('template2.soy', args.pop())
     time += 1000
-    return Q.delay(1)
+    return delay(1)
   }).then(function () {
     return watchCallbacks[0]()
   }).then(function () {
