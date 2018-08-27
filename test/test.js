@@ -87,10 +87,11 @@ beforeEach(done => {
 
   spawnOpts = [];
   spawnArgs = [];
-  child_process.spawn = function(prog, args, opts) {
+  child_process.spawn = function(...args) {
+    const [, argms, opts] = args;
     spawnOpts.push(opts);
-    spawnArgs.push(args);
-    return spawn.apply(child_process, arguments);
+    spawnArgs.push(argms);
+    return spawn.apply(child_process, args);
   };
 
   done();
