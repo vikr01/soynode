@@ -98,6 +98,7 @@ beforeEach(done => {
 });
 
 describe('Basic', () => {
+  if (process.env.TEST_TIMEOUT) this.timeout(process.env.TEST_TIMEOUT);
   afterEach(() => {
     Date.now = now;
     fs.watchFile = watchFile;
@@ -392,8 +393,8 @@ describe('Basic', () => {
     assertTemplatesContents('pt-BR');
   });
 
-  it('test dynamic recompile when event handler throws', async function() {
-    this.timeout(4000);
+  it('test dynamic recompile when event handler throws', async () => {
+    // this.timeout(4000);
     soyCompiler.setOptions({ allowDynamicRecompile: true });
 
     const errToThrow = 'Deliberately thrown error';

@@ -20,7 +20,7 @@
     "lint-fix": "yarn run lint --quiet --fix || :",
     "postlint-fix": "prettier --ignore-path .eslintignore --write './**/*.js'",
     "prepare": "yarn run build",
-    "test": "mocha --require @babel/register test/test.js",
+    "test": "mocha --require @babel/register --no-timeouts test/test.js",
     "test-all": "yarn run test && yarn run lint"
   },
   "dependencies": {
