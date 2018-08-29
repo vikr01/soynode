@@ -1,5 +1,18 @@
 language: node_js
 sudo: false
 node_js:
-  - "0.12"
-  - "4.1"
+  - node
+  - '10'
+os:
+  - linux
+  - osx
+cache:
+  yarn: true
+  directories:
+    - node_modules
+install:
+  - yarn install
+script:
+  - yarn build
+  - yarn lint
+  - yarn test
