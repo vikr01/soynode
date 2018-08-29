@@ -1,17 +1,10 @@
 language: node_js
-sudo: false
+
 node_js:
   - node
-  - '10'
-os:
-  - linux
-  - osx
-cache:
-  yarn: true
-  directories:
-    - node_modules
-install:
-  - yarn install
+
+cache: yarn
+
 script:
   - yarn build
   - yarn lint
