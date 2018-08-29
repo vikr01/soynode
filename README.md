@@ -24,16 +24,16 @@ const soynode = new SoyCompiler();
 soynode.setOptions({
     outputDir: '/tmp/soynode-example',
     allowDynamicRecompile: true
-})
+});
 
-soynode.compileTemplates(__dirname, function (err) {
+soynode.compileTemplates(__dirname, (err) => {
   if (err) throw err;
   // Templates are now ready to use.
   console.log(soynode.render('example.message.hello', {
       name: process.env.USER,
       date: new Date().toLocaleTimeString()
   }));
-})
+});
 ```
 
 Also, see `examples/example.js`.
