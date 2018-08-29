@@ -4,9 +4,6 @@
  * @fileoverview Public interface exposed to users of `soynode`.
  */
 
-import SoyCompiler from './SoyCompiler';
-
 // Public API.  See function declarations for JSDoc.
-export default {
-  SoyCompiler,
-};
+
+export { default, default as SoyCompiler } from './SoyCompiler';
