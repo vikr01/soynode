@@ -7,6 +7,6 @@
 import SoyCompiler from './SoyCompiler';
 
 // Public API.  See function declarations for JSDoc.
-export default new SoyCompiler();
-
-export { default as SoyCompiler } from './SoyCompiler';
+export default {
+  SoyCompiler,
+};
