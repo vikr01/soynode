@@ -4,7 +4,7 @@ import path from 'path';
 import delay from 'delay';
 import assert from 'assert';
 import { promisify } from 'util';
-import { SoyCompiler } from '../lib/soynode';
+import { SoyCompiler } from '../src/soynode';
 
 const { now } = Date;
 const { spawn } = child_process;
@@ -393,7 +393,7 @@ describe('Basic', () => {
   });
 
   it('test dynamic recompile when event handler throws', async function() {
-    this.timeout(3000);
+    this.timeout(4000);
     soyCompiler.setOptions({ allowDynamicRecompile: true });
 
     const errToThrow = 'Deliberately thrown error';
