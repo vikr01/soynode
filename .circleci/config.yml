@@ -4,7 +4,7 @@ jobs:
     # https://circleci.com/docs/2.0/circleci-images/#nodejs
     docker:
       # - image: node:latest
-      - image: circleci/openjdk:8u181-jdk-node
+      - image: circleci/openjdk:latest-node
     # https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
       - run:
