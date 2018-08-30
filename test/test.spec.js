@@ -2,7 +2,6 @@ import child_process from 'child_process';
 import fs, { watchFile } from 'fs-extra';
 import path from 'path';
 import delay from 'delay';
-import assert from 'assert';
 import { promisify } from 'util';
 import { SoyCompiler } from '../src/soynode';
 
@@ -33,37 +32,31 @@ function assertTemplatesContents(locale, opt_soyCompiler) {
     locale
   );
 
-  assert.equal('string', typeof template1);
-  assert.equal('string', typeof template2);
+  expect(typeof template1).toEqual('string');
+  expect(typeof template2).toEqual('string');
 
   switch (locale) {
     case 'pt-BR':
-      assert.equal(
-        template1,
+      expect(template1).toEqual(
         'Querido Mr. Pupius: Com um nome como Mr. Pupius, você não deveria ter o seu própro tema musical? Nós podemos ajudar!'
       );
-      assert.equal(
-        template2,
+      expect(template2).toEqual(
         'Querido Mr. Santos: Com um nome como Mr. Santos, você não deveria ter o seu própro tema musical? Nós podemos ajudar!'
       );
       break;
     case 'es':
-      assert.equal(
-        template1,
+      expect(template1).toEqual(
         'Estimado Mr. Pupius: Con un nombre como Mr. Pupius, ¿no debería tener su propia canción? Nosotros podemos ayudarle!'
       );
-      assert.equal(
-        template2,
+      expect(template2).toEqual(
         'Estimado Mr. Santos: Con un nombre como Mr. Santos, ¿no debería tener su propia canción? Nosotros podemos ayudarle!'
       );
       break;
     default:
-      assert.equal(
-        template1,
+      expect(template1).toEqual(
         "Dear Mr. Pupius: With a name like Mr. Pupius, shouldn't you have your own theme song? We can help!"
       );
-      assert.equal(
-        template2,
+      expect(template2).toEqual(
         "Dear Mr. Santos: With a name like Mr. Santos, shouldn't you have your own theme song? We can help!"
       );
       break;
@@ -107,70 +100,70 @@ describe('Basic', () => {
     child_process.spawn = spawn;
   });
 
-  it('test compile templates', done => {
+  test('test compile templates', done => {
     soyCompiler.compileTemplates(`${__dirname}/assets`, err => {
-      assert.ifError(err);
-      assert.doesNotThrow(assertTemplatesContents);
+      expect(err).toBeFalsy();
+      expect(assertTemplatesContents).not.toThrow();
       done();
     });
   });
 
-  it('test compile templates watch', async () => {
+  test('test compile templates watch', async () => {
     soyCompiler.setOptions({ allowDynamicRecompile: true });
     await promisify(soyCompiler.compileTemplates).bind(soyCompiler)(
       `${__dirname}/assets`
     );
-    assert.deepEqual(
-      ['template1.soy', 'template2.soy', 'template3.soy'],
-      watchFiles.map(f => path.basename(f))
-    );
-    assert.deepEqual([{ cwd: `${__dirname}/assets` }], spawnOpts);
+    expect(watchFiles.map(f => path.basename(f))).toEqual([
+      'template1.soy',
+      'template2.soy',
+      'template3.soy',
+    ]);
+    expect(spawnOpts).toEqual([{ cwd: `${__dirname}/assets` }]);
 
     const args1 = spawnArgs[0];
-    assert.deepEqual(
-      ['template1.soy', 'template2.soy', 'template3.soy'],
-      args1.slice(args1.length - 3, args1.length)
-    );
+    expect(args1.slice(args1.length - 3, args1.length)).toEqual([
+      'template1.soy',
+      'template2.soy',
+      'template3.soy',
+    ]);
 
     time += 1000;
     await delay(1);
     await watchCallbacks[1]();
 
-    assert.deepEqual(
-      ['template1.soy', 'template2.soy', 'template3.soy'],
-      watchFiles.map(f => path.basename(f))
-    );
-    assert.deepEqual(
-      [{ cwd: `${__dirname}/assets` }, { cwd: `${__dirname}/assets` }],
-      spawnOpts
-    );
+    expect(watchFiles.map(f => path.basename(f))).toEqual([
+      'template1.soy',
+      'template2.soy',
+      'template3.soy',
+    ]);
+    expect(spawnOpts).toEqual([
+      { cwd: `${__dirname}/assets` },
+      { cwd: `${__dirname}/assets` },
+    ]);
 
     const args2 = spawnArgs[1];
     const secondLastArg = args2[args2.length - 2];
-    assert.ok(secondLastArg.indexOf('/tmp/soynode') === 0);
+    expect(secondLastArg.indexOf('/tmp/soynode')).toEqual(0);
 
     const lastArg = args2[args2.length - 1];
-    assert.equal('template2.soy', lastArg);
+    expect(lastArg).toEqual('template2.soy');
     return null;
   });
 
-  it('test compile templates watch del template', async () => {
+  test('test compile templates watch del template', async () => {
     soyCompiler.setOptions({ allowDynamicRecompile: true });
     await promisify(soyCompiler.compileTemplates).bind(soyCompiler)(
       `${__dirname}/assets`
     );
 
-    assert.equal(
-      'The default template',
-      soyCompiler.render('template3.main', {})
+    expect(soyCompiler.render('template3.main', {})).toEqual(
+      'The default template'
     );
-    assert.equal(
-      'Hello world',
-      soyCompiler.render('template3.main', { type: 'hello' })
+    expect(soyCompiler.render('template3.main', { type: 'hello' })).toEqual(
+      'Hello world'
     );
-    assert.equal(
-      'The default template',
-      soyCompiler.render('template3.main', { type: 'goodbye' })
+    expect(soyCompiler.render('template3.main', { type: 'goodbye' })).toEqual(
+      'The default template'
     );
 
     time += 1000;
@@ -178,79 +171,76 @@ describe('Basic', () => {
 
     await watchCallbacks[1]();
 
-    assert.equal(
-      'The default template',
-      soyCompiler.render('template3.main', {})
+    expect(soyCompiler.render('template3.main', {})).toEqual(
+      'The default template'
     );
-    assert.equal(
-      'Hello world',
-      soyCompiler.render('template3.main', { type: 'hello' })
+    expect(soyCompiler.render('template3.main', { type: 'hello' })).toEqual(
+      'Hello world'
     );
-    assert.equal(
-      'The default template',
-      soyCompiler.render('template3.main', { type: 'goodbye' })
+    expect(soyCompiler.render('template3.main', { type: 'goodbye' })).toEqual(
+      'The default template'
     );
   });
 
-  it('test compile template files', done => {
+  test('test compile template files', done => {
     soyCompiler.compileTemplateFiles(
       [
         `${__dirname}/assets/template1.soy`,
         `${__dirname}/assets/template2.soy`,
       ],
       err => {
-        assert.ifError(err);
-        assert.doesNotThrow(assertTemplatesContents.bind(null));
+        expect(err).toBeFalsy();
+        expect(assertTemplatesContents.bind(null)).not.toThrow();
         done();
       }
     );
   });
 
-  it('test compile template files relative path', done => {
+  test('test compile template files relative path', done => {
     soyCompiler.setOptions({ inputDir: __dirname });
     soyCompiler.compileTemplateFiles(
       ['./assets/template1.soy', './assets/template2.soy'],
       err => {
-        assert.ifError(err);
-        assert.doesNotThrow(assertTemplatesContents.bind(null));
+        expect(err).toBeFalsy();
+        expect(assertTemplatesContents.bind(null)).not.toThrow();
         done();
       }
     );
   });
 
-  it('test compile and translate templates', done => {
+  test('test compile and translate templates', done => {
     soyCompiler.setOptions({
       locales: ['pt-BR'],
       messageFilePathFormat: `${__dirname}/assets/translations_pt-BR.xlf`,
     });
     soyCompiler.compileTemplates(`${__dirname}/assets`, err => {
-      assert.ifError(err);
-      assert.doesNotThrow(assertTemplatesContents.bind(null, 'pt-BR'));
+      expect(err).toBeFalsy();
+      expect(assertTemplatesContents.bind(null, 'pt-BR')).not.toThrow();
       done();
     });
   });
 
-  it('test compile and translate multiple languages templates', done => {
+  test('test compile and translate multiple languages templates', done => {
     soyCompiler.setOptions({
       locales: ['pt-BR', 'es'],
       messageFilePathFormat: `${__dirname}/assets/translations_{LOCALE}.xlf`,
     });
     soyCompiler.compileTemplates(`${__dirname}/assets`, err => {
-      assert.ifError(err);
-      assert.doesNotThrow(assertTemplatesContents.bind(null, 'pt-BR'));
-      assert.doesNotThrow(assertTemplatesContents.bind(null, 'es'));
+      expect(err).toBeFalsy();
+      expect(assertTemplatesContents.bind(null, 'pt-BR')).not.toThrow();
+      expect(assertTemplatesContents.bind(null, 'es')).not.toThrow();
       done();
     });
   });
 
-  it('test default should declare top level namespaces', done => {
+  test('test default should declare top level namespaces', done => {
     soyCompiler.setOptions({
       uniqueDir: false,
     });
     soyCompiler.compileTemplateFiles(
       [`${__dirname}/assets/template1.soy`],
       err => {
-        assert.ifError(err);
+        expect(err).toBeFalsy();
 
         const soyJsFilePath = path.join(
           '/tmp/soynode',
@@ -258,14 +248,14 @@ describe('Basic', () => {
           'assets/template1.soy.js'
         );
         const contents = fs.readFileSync(soyJsFilePath, 'utf8');
-        assert.notEqual(-1, contents.indexOf('var template1 ='));
+        expect(contents.indexOf('var template1 =')).not.toEqual(-1);
 
         done();
       }
     );
   });
 
-  it('test false should declare top level namespaces', done => {
+  test('test false should declare top level namespaces', done => {
     soyCompiler.setOptions({
       shouldDeclareTopLevelNamespaces: false,
       contextJsPaths: [path.join(__dirname, '/assets/template1_namespace.js')],
@@ -274,7 +264,7 @@ describe('Basic', () => {
     soyCompiler.compileTemplateFiles(
       [`${__dirname}/assets/template1.soy`],
       err => {
-        assert.ifError(err);
+        expect(err).toBeFalsy();
 
         const soyJsFilePath = path.join(
           '/tmp/soynode',
@@ -282,14 +272,13 @@ describe('Basic', () => {
           'assets/template1.soy.js'
         );
         const contents = fs.readFileSync(soyJsFilePath, 'utf8');
-        assert.equal(-1, contents.indexOf('var template1 ='));
-
+        expect(contents.indexOf('var template1 =')).toEqual(-1);
         done();
       }
     );
   });
 
-  it('test with ij data', done => {
+  test('test with ij data', done => {
     soyCompiler.setOptions({
       uniqueDir: false,
     });
@@ -299,7 +288,7 @@ describe('Basic', () => {
         `${__dirname}/assets/template2.soy`,
       ],
       err => {
-        assert.ifError(err);
+        expect(err).toBeFalsy();
 
         const soyJsFilePath = path.join(
           '/tmp/soynode',
@@ -307,17 +296,15 @@ describe('Basic', () => {
           'assets/template2.soy.js'
         );
         const contents = fs.readFileSync(soyJsFilePath, 'utf8');
-        assert.notEqual(
-          -1,
+        expect(
           contents.indexOf('template1.formletter(opt_data, null, opt_ijData)')
-        );
-
+        ).not.toEqual(-1);
         done();
       }
     );
   });
 
-  it('test precompile templates one compiler', async () => {
+  test('test precompile templates one compiler', async () => {
     soyCompiler.setOptions({
       outputDir: tmpDir1,
       uniqueDir: false,
@@ -329,18 +316,18 @@ describe('Basic', () => {
       `${__dirname}/assets`
     )();
 
-    assert.equal(1, spawnOpts.length);
+    expect(spawnOpts).toHaveLength(1);
     await promisify(soyCompiler.compileTemplates).bind(
       soyCompiler,
       `${__dirname}/assets`
     )();
 
     // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
-    assert.equal(1, spawnOpts.length);
+    expect(spawnOpts).toHaveLength(1);
     assertTemplatesContents(null, soyCompiler);
   });
 
-  it('test precompile templates two compilers', async () => {
+  test('test precompile templates two compilers', async () => {
     soyCompiler.setOptions({
       outputDir: tmpDir1,
       uniqueDir: false,
@@ -358,18 +345,18 @@ describe('Basic', () => {
       `${__dirname}/assets`
     )();
 
-    assert.equal(1, spawnOpts.length);
+    expect(spawnOpts).toHaveLength(1);
     await promisify(soyCompilerB.compileTemplates).bind(soyCompilerB)(
       `${__dirname}/assets`
     );
 
     // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
-    assert.equal(1, spawnOpts.length);
+    expect(spawnOpts).toHaveLength(1);
     assertTemplatesContents(null, soyCompiler);
     assertTemplatesContents(null, soyCompilerB);
   });
 
-  it('test precompile templates one compiler mult languages', async () => {
+  test('test precompile templates one compiler mult languages', async () => {
     soyCompiler.setOptions({
       outputDir: tmpDir1,
       uniqueDir: false,
@@ -382,18 +369,18 @@ describe('Basic', () => {
       `${__dirname}/assets`
     );
 
-    assert.equal(1, spawnOpts.length);
+    expect(spawnOpts).toHaveLength(1);
     await promisify(soyCompiler.compileTemplates).bind(soyCompiler)(
       `${__dirname}/assets`
     );
 
     // Confirm that we re-used the precompiled templates and didn't start a new soy binary.
-    assert.equal(1, spawnOpts.length);
+    expect(spawnOpts).toHaveLength(1);
     assertTemplatesContents('es');
     assertTemplatesContents('pt-BR');
   });
 
-  it('test dynamic recompile when event handler throws', async () => {
+  test('test dynamic recompile when event handler throws', async () => {
     // this.timeout(4000);
     soyCompiler.setOptions({ allowDynamicRecompile: true });
 
@@ -414,26 +401,26 @@ describe('Basic', () => {
         });
       });
     } catch (err) {
-      assert.equal(err.message, errToThrow.message);
+      expect(err.message).toEqual(errToThrow.message);
     }
 
-    assert.equal(errorWasThrown, true);
+    expect(errorWasThrown).toEqual(true);
 
     const args1 = spawnArgs.slice(0)[0];
-    assert.equal('template3.soy', args1.pop());
+    expect(args1.pop()).toEqual('template3.soy');
     time += 1000;
     await delay(1);
 
     await watchCallbacks[1]();
 
     const args2 = spawnArgs.slice(0)[0];
-    assert.equal('template2.soy', args2.pop());
+    expect(args2.pop()).toEqual('template2.soy');
     time += 1000;
     await delay(1);
 
     await watchCallbacks[0]();
 
     const args3 = spawnArgs.slice(0)[0];
-    assert.equal('template1.soy', args3.pop());
+    expect(args3.pop()).toEqual('template1.soy');
   });
 });

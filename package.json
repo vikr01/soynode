@@ -20,7 +20,7 @@
     "lint-fix": "yarn run lint --quiet --fix || :",
     "postlint-fix": "prettier --ignore-path .eslintignore --write './**/*.js'",
     "prepare": "yarn run build",
-    "test": "mocha --require @babel/register --no-timeouts test/test.js",
+    "test": "jest test",
     "test-all": "yarn run test && yarn run lint"
   },
   "dependencies": {
@@ -47,12 +47,12 @@
     "eslint-plugin-babel": "^5.1.0",
     "eslint-plugin-flowtype": "^2.50.0",
     "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jest": "^21.22.0",
     "eslint-plugin-mocha": "^5.2.0",
     "eslint-plugin-promise": "^4.0.0",
     "husky": "^1.0.0-rc.13",
     "jest": "^23.5.0",
     "lint-staged": "^7.2.2",
-    "mocha": "^5.2.0",
     "prettier": "^1.14.2",
     "prettier-package-json": "^2.0.0",
     "rimraf": "^2.6.2",

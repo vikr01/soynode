@@ -1,10 +1,13 @@
 {
-  "plugins": ["mocha"],
+  "plugins": ["jest"],
+  "extends": ["plugin:jest/recommended"],
   "globals": {
     "afterEach": true,
     "beforeEach": true,
     "describe": true,
-    "it": true
+    "it": true,
+    "expect": true,
+    "test": true
   },
   "rules": {
     "prefer-rest-params": 1,
