@@ -6,7 +6,14 @@
     ".eslintignore": "ignore"
   },
 
+  "javascript.validate.enable": false,
+  "javascript.format.enable": false,
+  "typescript.validate.enable": false,
+  "typescript.format.enable": false,
+
+  "editor.formatOnSave": true,
   "eslint.enable": true,
   "eslint.workingDirectories": ["."],
-  "eslint.autoFixOnSave": true
+  "eslint.autoFixOnSave": true,
+  "prettier.eslintIntegration": true
 }
