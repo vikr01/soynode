@@ -45,40 +45,37 @@ function logErrorOrDone(err) {
  * provided extension.  The resultant array is a list of paths relative to the input directory.
  * @param {string} directory
  * @param {string} extension
- * @param {function(Error, Array.<string>)} callback
  */
-function findFiles(directory, extension, callback) {
+async function findFiles(directory, extension) {
   const files = [];
   const stack = [directory];
 
-  function next() {
+  async function next() {
     if (stack.length === 0) {
-      callback(null, files);
-    } else {
-      const dir = stack.pop();
-      fs.stat(dir, (err, stats) => {
-        if (err) return callback(err, []);
-        if (!stats.isDirectory()) return next();
-        return fs.readdir(dir, (error, dirContents) => {
-          if (error) return callback(error, []);
-          dirContents.forEach(file => {
-            const fullpath = path.join(dir, file);
-            // If the file is a soy file then push it onto the files array.
-            if (file.substr(-1 - extension.length) === `.${extension}`) {
-              files.push(path.relative(directory, fullpath));
-
-              // If the file has no extension add it to the stack for potential processing. We
-              // optimistically add potential dirs here to simplify the async nature of fs calls.
-            } else if (file.indexOf('.') === -1) {
-              stack.push(fullpath);
-            }
-          });
-          return next();
-        });
-      });
+      return files;
     }
+    const dir = stack.pop();
+    const stats = await promisify(fs.stat)(dir);
+
+    if (!stats.isDirectory()) return next();
+
+    const dirContents = await promisify(fs.readdir)(dir);
+
+    dirContents.forEach(file => {
+      const fullpath = path.join(dir, file);
+      // If the file is a soy file then push it onto the files array.
+      if (file.substr(-1 - extension.length) === `.${extension}`) {
+        files.push(path.relative(directory, fullpath));
+
+        // If the file has no extension add it to the stack for potential processing. We
+        // optimistically add potential dirs here to simplify the async nature of fs calls.
+      } else if (file.indexOf('.') === -1) {
+        stack.push(fullpath);
+      }
+    });
+    return next();
   }
-  next();
+  return next();
 }
 
 /**
@@ -422,28 +419,34 @@ export default class SoyCompiler {
    */
   _compileTemplatesAndEmit(inputDir, emitter) {
     const self = this;
-    findFiles(inputDir, 'soy', (err, files) => {
-      if (err) return emitCompile(emitter, err);
-      if (files.length === 0) return emitCompile(emitter);
+    findFiles(inputDir, 'soy')
+      .then(files => {
+        if (files.length === 0) return emitCompile(emitter);
 
-      const outputDir = self._createOutputDir();
-      return self
-        ._maybeUsePrecompiledFiles(outputDir, files)
-        .then(dirtyFiles => {
-          self._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
-          return self._compileTemplateFilesAndEmit(
-            inputDir,
-            outputDir,
-            files,
-            dirtyFiles,
-            emitter
-          );
-        })
+        const outputDir = self._createOutputDir();
+        return self
+          ._maybeUsePrecompiledFiles(outputDir, files)
+          .then(dirtyFiles => {
+            self._maybeSetupDynamicRecompile(
+              inputDir,
+              outputDir,
+              files,
+              emitter
+            );
+            return self._compileTemplateFilesAndEmit(
+              inputDir,
+              outputDir,
+              files,
+              dirtyFiles,
+              emitter
+            );
+          })
 
-        .catch(error => {
-          throw error;
-        });
-    });
+          .catch(error => {
+            throw error;
+          });
+      })
+      .catch(err => emitCompile(emitter, err));
   }
 
   /**
