@@ -1,2 +1,9 @@
 examples
 test
+src
+.prettierrc
+.eslintrc
+.circleci
+.travis.yml
+.vscode
+
