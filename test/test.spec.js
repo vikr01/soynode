@@ -182,30 +182,21 @@ describe('Basic', () => {
     );
   });
 
-  test('test compile template files', done => {
-    soyCompiler.compileTemplateFiles(
-      [
-        `${__dirname}/assets/template1.soy`,
-        `${__dirname}/assets/template2.soy`,
-      ],
-      err => {
-        expect(err).toBeFalsy();
-        expect(assertTemplatesContents.bind(null)).not.toThrow();
-        done();
-      }
-    );
+  test('test compile template files', async () => {
+    await soyCompiler.compileTemplateFiles([
+      `${__dirname}/assets/template1.soy`,
+      `${__dirname}/assets/template2.soy`,
+    ]);
+    expect(assertTemplatesContents.bind(null)).not.toThrow();
   });
 
-  test('test compile template files relative path', done => {
+  test('test compile template files relative path', async () => {
     soyCompiler.setOptions({ inputDir: __dirname });
-    soyCompiler.compileTemplateFiles(
-      ['./assets/template1.soy', './assets/template2.soy'],
-      err => {
-        expect(err).toBeFalsy();
-        expect(assertTemplatesContents.bind(null)).not.toThrow();
-        done();
-      }
-    );
+    await soyCompiler.compileTemplateFiles([
+      './assets/template1.soy',
+      './assets/template2.soy',
+    ]);
+    expect(assertTemplatesContents.bind(null)).not.toThrow();
   });
 
   test('test compile and translate templates', done => {
@@ -233,75 +224,62 @@ describe('Basic', () => {
     });
   });
 
-  test('test default should declare top level namespaces', done => {
+  test('test default should declare top level namespaces', async () => {
     soyCompiler.setOptions({
       uniqueDir: false,
     });
-    soyCompiler.compileTemplateFiles(
-      [`${__dirname}/assets/template1.soy`],
-      err => {
-        expect(err).toBeFalsy();
+    await soyCompiler.compileTemplateFiles([
+      `${__dirname}/assets/template1.soy`,
+    ]);
 
-        const soyJsFilePath = path.join(
-          '/tmp/soynode',
-          __dirname,
-          'assets/template1.soy.js'
-        );
-        const contents = fs.readFileSync(soyJsFilePath, 'utf8');
-        expect(contents.indexOf('var template1 =')).not.toEqual(-1);
-
-        done();
-      }
+    const soyJsFilePath = path.join(
+      '/tmp/soynode',
+      __dirname,
+      'assets/template1.soy.js'
     );
+
+    const contents = await promisify(fs.readFile)(soyJsFilePath, 'utf8');
+    expect(contents.indexOf('var template1 =')).not.toEqual(-1);
   });
 
-  test('test false should declare top level namespaces', done => {
+  test('test false should declare top level namespaces', async () => {
     soyCompiler.setOptions({
       shouldDeclareTopLevelNamespaces: false,
       contextJsPaths: [path.join(__dirname, '/assets/template1_namespace.js')],
       uniqueDir: false,
     });
-    soyCompiler.compileTemplateFiles(
-      [`${__dirname}/assets/template1.soy`],
-      err => {
-        expect(err).toBeFalsy();
+    await soyCompiler.compileTemplateFiles([
+      `${__dirname}/assets/template1.soy`,
+    ]);
 
-        const soyJsFilePath = path.join(
-          '/tmp/soynode',
-          __dirname,
-          'assets/template1.soy.js'
-        );
-        const contents = fs.readFileSync(soyJsFilePath, 'utf8');
-        expect(contents.indexOf('var template1 =')).toEqual(-1);
-        done();
-      }
+    const soyJsFilePath = path.join(
+      '/tmp/soynode',
+      __dirname,
+      'assets/template1.soy.js'
     );
+    const contents = await promisify(fs.readFile)(soyJsFilePath, 'utf8');
+
+    expect(contents.indexOf('var template1 =')).toEqual(-1);
   });
 
-  test('test with ij data', done => {
+  test('test with ij data', async () => {
     soyCompiler.setOptions({
       uniqueDir: false,
     });
-    soyCompiler.compileTemplateFiles(
-      [
-        `${__dirname}/assets/template1.soy`,
-        `${__dirname}/assets/template2.soy`,
-      ],
-      err => {
-        expect(err).toBeFalsy();
+    await soyCompiler.compileTemplateFiles([
+      `${__dirname}/assets/template1.soy`,
+      `${__dirname}/assets/template2.soy`,
+    ]);
 
-        const soyJsFilePath = path.join(
-          '/tmp/soynode',
-          __dirname,
-          'assets/template2.soy.js'
-        );
-        const contents = fs.readFileSync(soyJsFilePath, 'utf8');
-        expect(
-          contents.indexOf('template1.formletter(opt_data, null, opt_ijData)')
-        ).not.toEqual(-1);
-        done();
-      }
+    const soyJsFilePath = path.join(
+      '/tmp/soynode',
+      __dirname,
+      'assets/template2.soy.js'
     );
+    const contents = await promisify(fs.readFile)(soyJsFilePath, 'utf8');
+    expect(
+      contents.indexOf('template1.formletter(opt_data, null, opt_ijData)')
+    ).not.toEqual(-1);
   });
 
   test('test precompile templates one compiler', async () => {

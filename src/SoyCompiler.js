@@ -202,30 +202,22 @@ export default class SoyCompiler {
    * @param {function (Error, boolean)=} callback
    * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile.
    */
-  compileTemplateFiles(files, callback) {
+  async compileTemplateFiles(files) {
     const emitter = new EventEmitter();
-    if (callback) {
-      emitter.once('compile', callback);
-    }
     const outputDir = this._createOutputDir();
     const { inputDir } = this._options;
     const self = this;
-    this._maybeUsePrecompiledFiles(outputDir, files)
-      .then(dirtyFiles => {
-        self._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
-        return self._compileTemplateFilesAndEmit(
-          inputDir,
-          outputDir,
-          files,
-          dirtyFiles,
-          emitter
-        );
-      })
+    const dirtyFiles = await this._maybeUsePrecompiledFiles(outputDir, files);
+    self._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
+    self._compileTemplateFilesAndEmit(
+      inputDir,
+      outputDir,
+      files,
+      dirtyFiles,
+      emitter
+    );
 
-      .catch(err => {
-        throw err;
-      });
-    return emitter;
+    return promisify(emitter.once).bind(emitter)('compile');
   }
 
   /**
