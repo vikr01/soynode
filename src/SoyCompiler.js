@@ -275,7 +275,7 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  _compileTemplateFilesAsync(inputDir, outputDir, allFiles, dirtyFiles) {
+  async _compileTemplateFilesAsync(inputDir, outputDir, allFiles, dirtyFiles) {
     const options = this._options;
     let outputPathFormat = path.join(
       outputDir,
@@ -341,7 +341,6 @@ export default class SoyCompiler {
     args = args.concat(dirtyFiles);
 
     let terminated = false;
-    const self = this;
 
     async function runCompiler() {
       return new Promise((resolve, reject) => {
@@ -380,25 +379,21 @@ export default class SoyCompiler {
       });
     }
 
-    return runCompiler().then(() => {
-      let vmTypes = [DEFAULT_VM_CONTEXT];
-      if (options.locales && options.locales.length > 0) {
-        vmTypes = options.locales.concat(); // clone
-      }
+    await runCompiler();
+    let vmTypes = [DEFAULT_VM_CONTEXT];
+    if (options.locales && options.locales.length > 0) {
+      vmTypes = [...options.locales]; // clone
+    }
 
-      function next() {
-        if (vmTypes.length === 0) {
-          return Promise.resolve(true);
-        }
-        return self
-          ._postCompileProcess(outputDir, allFiles, vmTypes.pop())
-          .then(next);
+    const next = async () => {
+      if (vmTypes.length === 0) {
+        return Promise.resolve(true);
       }
-      return next().catch(err => {
-        console.error('Error post-processing templates', err);
-        throw err;
-      });
-    });
+      await this._postCompileProcess(outputDir, allFiles, vmTypes.pop());
+      return next();
+    };
+
+    return next();
   }
 
   /**
