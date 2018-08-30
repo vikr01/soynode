@@ -22,18 +22,19 @@ import { SoyCompiler } from 'soynode';
 const soynode = new SoyCompiler();
 
 soynode.setOptions({
-    outputDir: '/tmp/soynode-example',
-    allowDynamicRecompile: true
+  outputDir: '/tmp/soynode-example',
+  allowDynamicRecompile: true,
 });
 
-soynode.compileTemplates(__dirname, (err) => {
+soynode.compileTemplates(__dirname, err => {
   if (err) throw err;
   // Templates are now ready to use.
   console.log(
     soynode.render('example.message.hello', {
       name: process.env.USER,
-      date: new Date().toLocaleTimeString()
-  }));
+      date: new Date().toLocaleTimeString(),
+    })
+  );
 });
 ```
 
@@ -93,7 +94,9 @@ for `SoyToJsSrcCompiler`. The keys can contain the following:
 To take advantage of soy's [translation](https://developers.google.com/closure/templates/docs/translation) features through soynode, you should set the `locales` and `messageFilePathFormat` options, like in the example below:
 
 ```js
-var soynode = require('../lib/soynode');
+import { SoyCompiler } from 'soynode';
+
+const soynode = new SoyCompiler();
 
 soynode.setOptions({
   locales: ['pt-BR', 'es'],
