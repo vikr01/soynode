@@ -451,14 +451,10 @@ export default class SoyCompiler {
    * @param {string} inputDir
    * @param {function (Error, boolean)}
    */
-  loadCompiledTemplates(inputDir, callback) {
-    findFiles(inputDir, 'soy.js', (err, files) => {
-      if (err) return callback(err, false);
-      files = files.map(file => path.join(inputDir, file));
-      return this.loadCompiledTemplateFiles(files)
-        .then(res => callback(null, res))
-        .catch(error => callback(error));
-    });
+  async loadCompiledTemplates(inputDir) {
+    const files = await findFiles(inputDir, 'soy.js');
+    const filesMapping = files.map(file => path.join(inputDir, file));
+    return this.loadCompiledTemplateFiles(filesMapping);
   }
 
   /**
