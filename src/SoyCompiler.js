@@ -455,7 +455,9 @@ export default class SoyCompiler {
     findFiles(inputDir, 'soy.js', (err, files) => {
       if (err) return callback(err, false);
       files = files.map(file => path.join(inputDir, file));
-      return this.loadCompiledTemplateFiles(files, callback);
+      return this.loadCompiledTemplateFiles(files)
+        .then(res => callback(null, res))
+        .catch(error => callback(error));
     });
   }
 
@@ -465,20 +467,11 @@ export default class SoyCompiler {
    * @param {function (Error, boolean) | Object} callbackOrOptions
    * @param {function (Error, boolean)=} callback
    */
-  loadCompiledTemplateFiles(files, callbackOrOptions, callback) {
-    let vmType = DEFAULT_VM_CONTEXT;
+  async loadCompiledTemplateFiles(files, options) {
+    const { vmType } = options;
 
-    if (typeof callbackOrOptions === 'function') {
-      callback = callbackOrOptions;
-    } else {
-      const { vmType: vmType2 } = callbackOrOptions;
-      vmType = vmType2;
-    }
-
-    this.getSoyVmContext(vmType)
-      .loadCompiledTemplateFiles(files)
-      .then(result => callback(null, result))
-      .catch(err => callback(err));
+    const soyVmContext = this.getSoyVmContext(vmType);
+    return soyVmContext.loadCompiledTemplateFiles(files);
   }
 
   /**
@@ -701,9 +694,7 @@ export default class SoyCompiler {
 
     if (options.loadCompiledTemplates) {
       // Load the compiled templates into memory.
-      return promisify(
-        this.loadCompiledTemplateFiles.bind(this, templatePaths, { vmType })
-      )();
+      return this.loadCompiledTemplateFiles(templatePaths, { vmType });
     }
     return Promise.resolve(true);
   }
