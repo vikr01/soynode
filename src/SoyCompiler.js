@@ -206,10 +206,9 @@ export default class SoyCompiler {
     const emitter = new EventEmitter();
     const outputDir = this._createOutputDir();
     const { inputDir } = this._options;
-    const self = this;
     const dirtyFiles = await this._maybeUsePrecompiledFiles(outputDir, files);
-    self._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
-    self._compileTemplateFilesAndEmit(
+    this._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
+    this._compileTemplateFilesAndEmit(
       inputDir,
       outputDir,
       files,
@@ -253,14 +252,13 @@ export default class SoyCompiler {
     dirtyFiles,
     emitter
   ) {
-    const self = this;
     return this._compileTemplateFilesAsync(
       inputDir,
       outputDir,
       allFiles,
       dirtyFiles
     ).then(
-      () => self._finalizeCompileTemplates(outputDir, emitter),
+      () => this._finalizeCompileTemplates(outputDir, emitter),
       err => emitCompile(emitter, err)
     );
   }
@@ -405,22 +403,20 @@ export default class SoyCompiler {
    * @private
    */
   _compileTemplatesAndEmit(inputDir, emitter) {
-    const self = this;
     findFiles(inputDir, 'soy')
       .then(files => {
         if (files.length === 0) return emitCompile(emitter);
 
-        const outputDir = self._createOutputDir();
-        return self
-          ._maybeUsePrecompiledFiles(outputDir, files)
+        const outputDir = this._createOutputDir();
+        return this._maybeUsePrecompiledFiles(outputDir, files)
           .then(dirtyFiles => {
-            self._maybeSetupDynamicRecompile(
+            this._maybeSetupDynamicRecompile(
               inputDir,
               outputDir,
               files,
               emitter
             );
-            return self._compileTemplateFilesAndEmit(
+            return this._compileTemplateFilesAndEmit(
               inputDir,
               outputDir,
               files,
@@ -462,11 +458,10 @@ export default class SoyCompiler {
    * @param {function (Error, boolean)}
    */
   loadCompiledTemplates(inputDir, callback) {
-    const self = this;
     findFiles(inputDir, 'soy.js', (err, files) => {
       if (err) return callback(err, false);
       files = files.map(file => path.join(inputDir, file));
-      return self.loadCompiledTemplateFiles(files, callback);
+      return this.loadCompiledTemplateFiles(files, callback);
     });
   }
 
@@ -504,21 +499,20 @@ export default class SoyCompiler {
 
     let currentCompilePromise = Promise.resolve(true);
     let dirtyFileSet = {};
-    const self = this;
     relativeFilePaths.forEach(relativeFile => {
       const file = path.resolve(inputDir, relativeFile);
-      if (self._watches[file]) return;
+      if (this._watches[file]) return;
       try {
-        self._watches[file] = Date.now();
+        this._watches[file] = Date.now();
 
         fs.watchFile(file, {}, () => {
           const now = Date.now();
           // Ignore spurious change events.
           console.log('soynode: caught change to ', file);
-          if (now - self._watches[file] < 1000) return Promise.resolve(true);
+          if (now - this._watches[file] < 1000) return Promise.resolve(true);
 
           dirtyFileSet[relativeFile] = true;
-          self._watches[file] = now;
+          this._watches[file] = now;
 
           // Wait until the previous compile has completed before starting a new one.
           currentCompilePromise = currentCompilePromise
@@ -533,7 +527,7 @@ export default class SoyCompiler {
                 'soynode: Recompiling templates due to change in %s',
                 dirtyFiles
               );
-              return self._compileTemplateFilesAndEmit(
+              return this._compileTemplateFilesAndEmit(
                 inputDir,
                 outputDir,
                 relativeFilePaths,
@@ -573,15 +567,17 @@ export default class SoyCompiler {
       vmTypes = options.locales.concat(); // clone
     }
 
-    const self = this;
     return Promise.resolve(true)
       .then(() =>
         // Return an array of files that don't have precompiled versions.
         Promise.all(
           files.map(file =>
-            self
-              ._preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes)
-              .then(ok => (ok ? '' : file))
+            this._preparePrecompiledFile(
+              outputDir,
+              precompiledDir,
+              file,
+              vmTypes
+            ).then(ok => (ok ? '' : file))
           )
         )
       )
@@ -611,15 +607,14 @@ export default class SoyCompiler {
    * @private
    */
   _preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes) {
-    const self = this;
     const precompiledFilesOkPromise = Promise.all(
       vmTypes.map(vmType => {
-        const precompiledFileName = self._getOutputFile(
+        const precompiledFileName = this._getOutputFile(
           precompiledDir,
           file,
           vmType
         );
-        const outputFileName = self._getOutputFile(outputDir, file, vmType);
+        const outputFileName = this._getOutputFile(outputDir, file, vmType);
 
         const precompiledFileOkPromise = promisify(fs.stat)(
           precompiledFileName
