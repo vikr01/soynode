@@ -603,39 +603,36 @@ export default class SoyCompiler {
    * @return {Promise<boolean>} True on success
    * @private
    */
-  _preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes) {
-    const precompiledFilesOkPromise = Promise.all(
-      vmTypes.map(vmType => {
-        const precompiledFileName = this._getOutputFile(
-          precompiledDir,
-          file,
-          vmType
-        );
-        const outputFileName = this._getOutputFile(outputDir, file, vmType);
+  async _preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes) {
+    const vmTypesMapping = vmTypes.map(async vmType => {
+      const precompiledFileName = this._getOutputFile(
+        precompiledDir,
+        file,
+        vmType
+      );
 
-        const precompiledFileOkPromise = promisify(fs.stat)(
-          precompiledFileName
-        ).then(
-          exists => {
-            if (!exists) {
-              return false;
-            }
+      const outputFileName = this._getOutputFile(outputDir, file, vmType);
 
-            if (outputFileName !== precompiledFileName) {
-              return promisify(fs.mkdirs)(path.dirname(outputFileName))
-                .then(() =>
-                  promisify(copy)(precompiledFileName, outputFileName)
-                )
-                .then(() => true);
-            }
-            return true;
-          },
-          () => false // stat is expected to error out if the file isn't there.
-        );
-        return precompiledFileOkPromise;
-      })
-    );
-    return precompiledFilesOkPromise.then(array => array.every(Boolean));
+      let exists;
+      try {
+        exists = await promisify(fs.stat)(precompiledFileName);
+      } catch (err) {
+        exists = false;
+      }
+
+      if (!exists) {
+        return false;
+      }
+
+      if (outputFileName !== precompiledFileName) {
+        await promisify(fs.mkdirs)(path.dirname(outputFileName));
+        await promisify(copy)(precompiledFileName, outputFileName);
+      }
+      return true;
+    });
+
+    const array = await Promise.all(vmTypesMapping);
+    return array.every(Boolean);
   }
 
   /**
