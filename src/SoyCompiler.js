@@ -196,10 +196,8 @@ export default class SoyCompiler {
   }
 
   /**
-   * Compiles all soy files within the provided array and loads them into memory.  The callback
-   * will be called when templates are ready, or an error occurred along the way.
+   * Compiles all soy files within the provided array and loads them into memory.
    * @param {Array.<string>} files
-   * @param {function (Error, boolean)=} callback
    * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile.
    */
   async compileTemplateFiles(files) {
@@ -449,7 +447,6 @@ export default class SoyCompiler {
    * Loads precompiled templates into memory.  All .soy.js files within the provided inputDir will be
    * loaded.
    * @param {string} inputDir
-   * @param {function (Error, boolean)}
    */
   async loadCompiledTemplates(inputDir) {
     const files = await findFiles(inputDir, 'soy.js');
@@ -460,8 +457,7 @@ export default class SoyCompiler {
   /**
    * Loads an array of template files into memory.
    * @param {Array.<string>} files
-   * @param {function (Error, boolean) | Object} callbackOrOptions
-   * @param {function (Error, boolean)=} callback
+   * @param {Object} options
    */
   async loadCompiledTemplateFiles(files, options) {
     const { vmType } = options;
