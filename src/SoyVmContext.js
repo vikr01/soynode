@@ -72,12 +72,13 @@ const CLOSURE_PATHS = [
 );
 
 function pathsToPromises(paths) {
-  return paths.map(pathToPromise =>
-    promisify(fs.readFile)(pathToPromise, 'utf8').then(contents => ({
+  return paths.map(async pathToPromise => {
+    const contents = await promisify(fs.readFile)(pathToPromise, 'utf8');
+    return {
       path: pathToPromise,
       contents,
-    }))
-  );
+    };
+  });
 }
 
 let supportFilePromises = null;
