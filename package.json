@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "closure-templates": "^20160825.0.0",
-    "fs-extra": "1.0.0",
+    "fs-extra": "7.0.0",
     "google-closure-library": "^20180805.0.0",
     "rimraf": "^2.6.2"
   },
