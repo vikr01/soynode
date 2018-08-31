@@ -475,7 +475,10 @@ export default class SoyCompiler {
       vmType = vmType2;
     }
 
-    this.getSoyVmContext(vmType).loadCompiledTemplateFiles(files, callback);
+    this.getSoyVmContext(vmType)
+      .loadCompiledTemplateFiles(files)
+      .then(result => callback(null, result))
+      .catch(err => callback(err));
   }
 
   /**

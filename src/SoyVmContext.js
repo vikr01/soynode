@@ -227,43 +227,28 @@ export default class SoyVmContext {
   /**
    * Loads an array of template files into memory.
    * @param {Array.<string>} files
-   * @param {function (Error, boolean)=} callback
    */
-  loadCompiledTemplateFiles(files, callback) {
+  async loadCompiledTemplateFiles(files) {
     const options = this._options;
 
     // load the contextJsPaths into the context before the soy template JS
     const filePromises = pathsToPromises(options.contextJsPaths.concat(files));
     const supportedFilePromises = getSupportFilePromises(options.soyUtilsPath);
 
-    let result = Promise.resolve(true);
     if (this._contextInitialized) {
-      result = (async () => {
-        vm.runInContext(
-          RESET_DELTEMPLATE_REGISTRY_CODE,
-          this.getContext(),
-          'soynode-reset.'
-        );
-      })();
+      vm.runInContext(
+        RESET_DELTEMPLATE_REGISTRY_CODE,
+        this.getContext(),
+        'soynode-reset.'
+      );
     } else {
-      result = result
-        .then(() => loadFiles(this.getContext(), supportedFilePromises))
-        .then(() => {
-          this._contextInitialized = true;
-          return null;
-        });
+      await loadFiles(this.getContext(), supportedFilePromises);
+      this._contextInitialized = true;
     }
 
-    result
-      .then(() => loadFiles(this.getContext(), filePromises))
-      .then(
-        finalResult => {
-          // Blow away the cache when all files have been loaded
-          this._templateCache = {};
-          return callback(null, finalResult);
-        },
-        err => callback(err)
-      )
-      .catch(err => callback(err));
+    const finalResult = await loadFiles(this.getContext(), filePromises);
+    // Blow away the cache when all files have been loaded
+    this._templateCache = {};
+    return finalResult;
   }
 }
