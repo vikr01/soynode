@@ -554,7 +554,7 @@ export default class SoyCompiler {
    * @return {Promise<Array.<string>>} Files that we could not find precompiled versions of.
    * @private
    */
-  _maybeUsePrecompiledFiles(outputDir, files) {
+  async _maybeUsePrecompiledFiles(outputDir, files) {
     const { precompiledDir } = this._options;
     if (!precompiledDir) {
       return Promise.resolve(files);
@@ -566,34 +566,32 @@ export default class SoyCompiler {
       vmTypes = options.locales.concat(); // clone
     }
 
-    return Promise.resolve(true)
-      .then(() =>
-        // Return an array of files that don't have precompiled versions.
-        Promise.all(
-          files.map(file =>
-            this._preparePrecompiledFile(
-              outputDir,
-              precompiledDir,
-              file,
-              vmTypes
-            ).then(ok => (ok ? '' : file))
-          )
-        )
-      )
-      .then(dirtyFiles => {
-        dirtyFiles = dirtyFiles.filter(Boolean); // filter out empty strings.
-        if (dirtyFiles.length !== files.length) {
-          console.log(
-            'Loaded %s precompiled files',
-            files.length - dirtyFiles.length
-          );
-        }
-        return dirtyFiles;
-      })
-      .catch(err => {
-        console.error('Failed loading precompiled files', err);
-        return files;
+    try {
+      const filesMapping = files.map(async file => {
+        const ok = await this._preparePrecompiledFile(
+          outputDir,
+          precompiledDir,
+          file,
+          vmTypes
+        );
+        return ok ? '' : file;
       });
+
+      // Return an array of files that don't have precompiled versions.
+      const dirtyFiles = (await Promise.all(filesMapping)).filter(Boolean); // filter out empty strings.
+
+      if (dirtyFiles.length !== files.length) {
+        console.log(
+          'Loaded %s precompiled files',
+          files.length - dirtyFiles.length
+        );
+      }
+
+      return dirtyFiles;
+    } catch (err) {
+      console.error('Failed loading precompiled files', err);
+      return files;
+    }
   }
 
   /**
