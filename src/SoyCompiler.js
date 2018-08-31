@@ -405,34 +405,25 @@ export default class SoyCompiler {
    * @param {EventEmitter} emitter
    * @private
    */
-  _compileTemplatesAndEmit(inputDir, emitter) {
-    findFiles(inputDir, 'soy')
-      .then(files => {
-        if (files.length === 0) return emitCompile(emitter);
+  async _compileTemplatesAndEmit(inputDir, emitter) {
+    let files;
+    try {
+      files = await findFiles(inputDir, 'soy');
+    } catch (err) {
+      return emitCompile(emitter, err);
+    }
 
-        const outputDir = this._createOutputDir();
-        return this._maybeUsePrecompiledFiles(outputDir, files)
-          .then(dirtyFiles => {
-            this._maybeSetupDynamicRecompile(
-              inputDir,
-              outputDir,
-              files,
-              emitter
-            );
-            return this._compileTemplateFilesAndEmit(
-              inputDir,
-              outputDir,
-              files,
-              dirtyFiles,
-              emitter
-            );
-          })
-
-          .catch(error => {
-            throw error;
-          });
-      })
-      .catch(err => emitCompile(emitter, err));
+    if (files.length === 0) return emitCompile(emitter);
+    const outputDir = this._createOutputDir();
+    const dirtyFiles = await this._maybeUsePrecompiledFiles(outputDir, files);
+    this._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
+    return this._compileTemplateFilesAndEmit(
+      inputDir,
+      outputDir,
+      files,
+      dirtyFiles,
+      emitter
+    );
   }
 
   /**
