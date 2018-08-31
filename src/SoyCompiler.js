@@ -674,14 +674,14 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  _postCompileProcess(outputDir, files, vmType) {
+  async _postCompileProcess(outputDir, files, vmType) {
     const options = this._options;
     vmType = vmType || DEFAULT_VM_CONTEXT;
 
     // Build a list of paths that we expect as output of the soy compiler.
-    const templatePaths = files.map(function(file) {
-      return this._getOutputFile(outputDir, file, vmType);
-    }, this);
+    const templatePaths = files.map(file =>
+      this._getOutputFile(outputDir, file, vmType)
+    );
 
     try {
       if (options.concatOutput)
@@ -694,6 +694,6 @@ export default class SoyCompiler {
       // Load the compiled templates into memory.
       return this.loadCompiledTemplateFiles(templatePaths, { vmType });
     }
-    return Promise.resolve(true);
+    return true;
   }
 }
