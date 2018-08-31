@@ -245,22 +245,25 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  _compileTemplateFilesAndEmit(
+  async _compileTemplateFilesAndEmit(
     inputDir,
     outputDir,
     allFiles,
     dirtyFiles,
     emitter
   ) {
-    return this._compileTemplateFilesAsync(
-      inputDir,
-      outputDir,
-      allFiles,
-      dirtyFiles
-    ).then(
-      () => this._finalizeCompileTemplates(outputDir, emitter),
-      err => emitCompile(emitter, err)
-    );
+    try {
+      await this._compileTemplateFilesAsync(
+        inputDir,
+        outputDir,
+        allFiles,
+        dirtyFiles
+      );
+    } catch (err) {
+      return emitCompile(emitter, err);
+    }
+
+    return this._finalizeCompileTemplates(outputDir, emitter);
   }
 
   /**
