@@ -112,24 +112,26 @@ const RESET_DELTEMPLATE_REGISTRY_CODE =
  * @param {Array.<Promise>} filePromises Promises of {path, contents} tuples
  * @return {Promise.Promise}
  */
-function loadFiles(context, filePromises) {
+async function loadFiles(context, filePromises) {
   let i = 0;
 
-  function next(result) {
+  async function next(result) {
     // Evaluate the template code in the context of the soy VM context.  Any variables defined
     // in the template file will become members of the vmContext object.
     vm.runInContext(result.contents, context, result.path);
 
     if (i >= filePromises.length) {
-      return Promise.resolve(true);
+      return true;
     }
-    return filePromises[i++].then(next);
+    const nextResult = await filePromises[i++];
+    return next(nextResult);
   }
 
   if (!filePromises.length) {
-    return Promise.resolve(true);
+    return true;
   }
-  return filePromises[i++].then(next);
+  const result = await filePromises[i++];
+  return next(result);
 }
 
 /**
