@@ -493,53 +493,58 @@ export default class SoyCompiler {
 
     let currentCompilePromise = Promise.resolve(true);
     let dirtyFileSet = {};
-    relativeFilePaths.forEach(relativeFile => {
+    relativeFilePaths.forEach(async relativeFile => {
       const file = path.resolve(inputDir, relativeFile);
       if (this._watches[file]) return;
+
       try {
         this._watches[file] = Date.now();
 
-        fs.watchFile(file, {}, () => {
+        fs.watchFile(file, {}, async () => {
           const now = Date.now();
           // Ignore spurious change events.
           console.log('soynode: caught change to ', file);
-          if (now - this._watches[file] < 1000) return Promise.resolve(true);
+          if (now - this._watches[file] < 1000) return true;
 
           dirtyFileSet[relativeFile] = true;
           this._watches[file] = now;
 
           // Wait until the previous compile has completed before starting a new one.
-          currentCompilePromise = currentCompilePromise
-            .then(() => {
-              const dirtyFiles = Object.keys(dirtyFileSet);
-              if (!dirtyFiles.length) {
-                // Nothing needs to be recompiled because it was already caught by another job.
-                return null;
-              }
-              dirtyFileSet = {};
-              console.log(
-                'soynode: Recompiling templates due to change in %s',
-                dirtyFiles
-              );
-              return this._compileTemplateFilesAndEmit(
-                inputDir,
-                outputDir,
-                relativeFilePaths,
-                dirtyFiles,
-                emitter
-              );
-            })
-            .catch(err => {
-              console.warn('soynode: Error recompiling ', err);
-            });
+          try {
+            await currentCompilePromise;
+          } catch (err) {
+            console.warn('soynode: Error recompiling ', err);
+            return undefined;
+          }
 
-          // Return the promise, for use when testing. fs.watchFile will just ignore this.
+          const dirtyFiles = Object.keys(dirtyFileSet);
+          if (!dirtyFiles.length) {
+            // Nothing needs to be recompiled because it was already caught by another job.
+            currentCompilePromise = Promise.resolve(null);
+            return undefined;
+          }
+          dirtyFileSet = {};
+          console.log(
+            'soynode: Recompiling templates due to change in %s',
+            dirtyFiles
+          );
+
+          currentCompilePromise = this._compileTemplateFilesAndEmit(
+            inputDir,
+            outputDir,
+            relativeFilePaths,
+            dirtyFiles,
+            emitter
+          );
+
           return currentCompilePromise;
         });
+
+        // Return the promise, for use when testing. fs.watchFile will just ignore this.
       } catch (e) {
         console.warn(`soynode: Error watching ${file}`, e);
       }
-    }, this);
+    });
   }
 
   /**
