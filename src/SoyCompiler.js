@@ -1,11 +1,12 @@
 // Copyright 2014. A Medium Corporation.
 
 import { EventEmitter } from 'events';
-import childProcess, { exec } from 'child_process';
+import childProcess from 'child_process';
 import closureTemplates from 'closure-templates';
 import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
+import rimraf from 'rimraf';
 import SoyVmContext from './SoyVmContext';
 import SoyOptions from './SoyOptions';
 import copy from './copy';
@@ -38,6 +39,14 @@ function emitCompile(emitter, err) {
 function logErrorOrDone(err) {
   if (err) console.error('soynode:', err);
   else console.log('soynode: Done');
+}
+
+async function clean(outputDir) {
+  try {
+    await promisify(rimraf)(outputDir);
+  } catch (err) {
+    console.error('soynode: Error deleting temporary files', err);
+  }
 }
 
 /**
@@ -436,10 +445,7 @@ export default class SoyCompiler {
       this._options.eraseTemporaryFiles &&
       !this._options.allowDynamicRecompile
     ) {
-      exec(`rm -r '${outputDir}'`, {}, err => {
-        // TODO(dan): This is a pretty nasty way to delete the files.  Maybe use rimraf
-        if (err) console.error('soynode: Error deleting temporary files', err);
-      });
+      clean(outputDir);
     }
   }
 
