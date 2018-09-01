@@ -6,14 +6,6 @@ import path from 'path';
 import { promisify } from 'util';
 
 /**
- * Resolved path to Soy utils JS script.
- * @type {string}
- */
-const PATH_TO_SOY_UTILS = require.resolve(
-  'google-closure-templates/javascript/soyutils_usegoog.js'
-);
-
-/**
  * All the dependencies of soyutils_usegoog.js
  *
  * In theory, it'd be more robust to load these with goog.require
@@ -90,8 +82,6 @@ let supportFilePromises = null;
 function getSupportFilePromises(soyUtilsPath) {
   if (supportFilePromises) return supportFilePromises;
 
-  soyUtilsPath = soyUtilsPath || PATH_TO_SOY_UTILS;
-
   const paths = CLOSURE_PATHS.concat([soyUtilsPath]);
   supportFilePromises = pathsToPromises(paths);
   return supportFilePromises;
@@ -141,56 +131,53 @@ async function loadFiles(context, filePromises) {
  * SoyNode operates by creating a VM sandbox, and loading the soy functions into
  * that sandbox. If you use SoyNode's i18n features, you may have multiple sandboxes,
  * one for each locale.
- *
- * @param {string} name
- * @param {SoyOptions} options
- * @constructor
  */
 export default class SoyVmContext {
+  /**
+   * @param {string} name
+   * @param {SoyOptions} options
+   * @constructor
+   */
   constructor(name, options) {
     /** @private {string} */
     this._name = name;
 
     /** @private {SoyOptions} */
     this._options = options;
-
-    /**
-     * A cache for function pointers returned by the vm.runInContext call.  Caching the reference
-     * results in a 10x speed improvement, over calling getting the function each time.
-     * @type {Object}
-     */
-    this._templateCache = {};
-
-    this._context = vm.createContext({});
-
-    /** @private {boolean} Whether the context has been initialized with soyutils */
-    this._contextInitialized = false;
   }
+
+  /**
+   * A cache for function pointers returned by the vm.runInContext call.  Caching the reference
+   * results in a 10x speed improvement, over calling getting the function each time.
+   * @type {Object}
+   */
+  _templateCache = {};
+
+  _context = vm.createContext({});
+
+  /** @private {boolean} Whether the context has been initialized with soyutils */
+  _contextInitialized = false;
 
   /**
    * The unique name of the sandbox.
    * @return {string}
    */
-  getName() {
-    return this._name;
-  }
+  getName = () => this._name;
 
   /**
    * @return {Object} Get the internal vm context. Useful for injecting globals
    *     manually into the context.
    * @return {Object}
    */
-  getContext() {
-    return this._context;
-  }
+  getContext = () => this._context;
 
   /**
    * @param {Object} context Sets the context. Useful for injecting globals
    *     manually into the context, but beware of overwriting the soy support code.
    */
-  setContext(context) {
+  setContext = context => {
     this._context = context;
-  }
+  };
 
   /**
    * Gets a reference to a template function.
@@ -200,7 +187,7 @@ export default class SoyVmContext {
    * @param {string} templateName
    * @return {function (Object) : string}
    */
-  get(templateName) {
+  get = templateName => {
     if (!this._options.loadCompiledTemplates)
       throw new Error(
         'soynode: Cannot load template, try with `loadCompiledTemplates: true`.'
@@ -223,13 +210,13 @@ export default class SoyVmContext {
       this._templateCache[templateName] = template;
     }
     return this._templateCache[templateName];
-  }
+  };
 
   /**
    * Loads an array of template files into memory.
    * @param {Array.<string>} files
    */
-  async loadCompiledTemplateFiles(files) {
+  loadCompiledTemplateFiles = async files => {
     const options = this._options;
 
     // load the contextJsPaths into the context before the soy template JS
@@ -251,5 +238,5 @@ export default class SoyVmContext {
     // Blow away the cache when all files have been loaded
     this._templateCache = {};
     return finalResult;
-  }
+  };
 }

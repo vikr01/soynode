@@ -16,14 +16,6 @@ import copy from './copy';
 const DEFAULT_VM_CONTEXT = 'default';
 
 /**
- * Resolved path to the executable jar for the Closure Template compiler.
- * @type {string}
- */
-const PATH_TO_SOY_JAR = require.resolve(
-  'google-closure-templates/javascript/SoyToJsSrcCompiler.jar'
-);
-
-/**
  * Emits the compile event. Swallows any errors thrown by the receiver.
  */
 function emitCompile(emitter, err) {
@@ -91,20 +83,20 @@ export default class SoyCompiler {
     /** @private {SoyOptions} */
     this._options = this._defaultOptions;
     this.setOptions(options);
-
-    /**
-     * VM Context that is used as the global when fetching templates.  The end result is that this
-     * object contains references to the JS functions rendered by Soy.
-     * @type {Object.<string, SoyVmContext>}
-     */
-    this._vmContexts = {};
-
-    /**
-     * Map of filenames that have a watch to the last time it was called.
-     * @param {Object.<number>}
-     */
-    this._watches = {};
   }
+
+  /**
+   * VM Context that is used as the global when fetching templates.  The end result is that this
+   * object contains references to the JS functions rendered by Soy.
+   * @type {Object.<string, SoyVmContext>}
+   */
+  _vmContexts = {};
+
+  /**
+   * Map of filenames that have a watch to the last time it was called.
+   * @param {Object.<number>}
+   */
+  _watches = {};
 
   /** @return {SoyOptions} */
   getDefaultOptions = () => this._defaultOptions;
@@ -275,7 +267,7 @@ export default class SoyCompiler {
     // Arguments for running the soy compiler via java.
     let args = [
       '-classpath',
-      [PATH_TO_SOY_JAR].concat(options.classpath).join(path.delimiter),
+      [options.soyJarPath].concat(options.classpath).join(path.delimiter),
       'com.google.template.soy.SoyToJsSrcCompiler',
       '--shouldGenerateJsdoc',
     ];
