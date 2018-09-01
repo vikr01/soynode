@@ -106,9 +106,7 @@ export default class SoyCompiler {
   }
 
   /** @return {SoyOptions} */
-  getDefaultOptions() {
-    return this._defaultOptions;
-  }
+  getDefaultOptions = () => this._defaultOptions;
 
   /**
    * Sets options which affect how soynode operates.
@@ -119,9 +117,9 @@ export default class SoyCompiler {
    *     allowDynamicRecompile: boolean=,
    *     eraseTemporaryFiles: boolean=}}} opts
    */
-  setOptions(opts) {
+  setOptions = opts => {
     this._options.merge(opts);
-  }
+  };
 
   /**
    * Gets a reference to a template function.
@@ -132,9 +130,8 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @return {function (Object) : string}
    */
-  get(templateName, vmType) {
-    return this.getSoyVmContext(vmType || DEFAULT_VM_CONTEXT).get(templateName);
-  }
+  get = (templateName, vmType) =>
+    this.getSoyVmContext(vmType || DEFAULT_VM_CONTEXT).get(templateName);
 
   /**
    * Renders a template using the provided data and returns the resultant string.
@@ -144,18 +141,17 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @return {string}
    */
-  render(templateName, data, injectedData, vmType) {
+  render = (templateName, data, injectedData, vmType) =>
     // Certain autoescape modes of closure-templates return a Content object
     // instead of a string, so force a string.
-    return String(this.get(templateName, vmType)(data, null, injectedData));
-  }
+    String(this.get(templateName, vmType)(data, null, injectedData));
 
   /**
    * Gets the SoyVmContext object for the for the given locale, or the default if no locale is given.
    *
    * @param {string=} vmType optional type of the vm
    */
-  getSoyVmContext(vmType) {
+  getSoyVmContext = vmType => {
     vmType = vmType || DEFAULT_VM_CONTEXT;
 
     if (!this._vmContexts[vmType]) {
@@ -163,7 +159,7 @@ export default class SoyCompiler {
     }
 
     return this._vmContexts[vmType];
-  }
+  };
 
   /**
    * Gets the vm context for the given locale, or the default if no locale is given.
@@ -171,26 +167,24 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @return {Object}
    */
-  getVMContext(vmType) {
-    return this.getSoyVmContext(vmType).getContext();
-  }
+  getVMContext = vmType => this.getSoyVmContext(vmType).getContext();
 
   /**
    * Compiles all soy files within the provided directory and loads them into memory.
    * @param {string} inputDir
    */
-  async compileTemplates(inputDir) {
+  compileTemplates = async inputDir => {
     const emitter = new EventEmitter();
     this._compileTemplatesAndEmit(inputDir, emitter);
     await promisify(emitter.once).bind(emitter)('compile');
-  }
+  };
 
   /**
    * Compiles all soy files within the provided array and loads them into memory.
    * @param {Array.<string>} files
    * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile.
    */
-  async compileTemplateFiles(files) {
+  compileTemplateFiles = async files => {
     const emitter = new EventEmitter();
     const outputDir = this._createOutputDir();
     const { inputDir } = this._options;
@@ -205,14 +199,14 @@ export default class SoyCompiler {
     );
 
     return promisify(emitter.once).bind(emitter)('compile');
-  }
+  };
 
   /**
    * Resolves the output directory from the current options.
    * @return {string}
    * @private
    */
-  _createOutputDir() {
+  _createOutputDir = () => {
     const options = this._options;
     let dir = options.outputDir || options.tmpDir;
     if (options.uniqueDir !== false) {
@@ -220,7 +214,7 @@ export default class SoyCompiler {
       dir = path.join(dir, timeDirectory);
     }
     return dir;
-  }
+  };
 
   /**
    * Compiles all soy files, but takes an emitter to use instead of a callback.
@@ -233,13 +227,13 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  async _compileTemplateFilesAndEmit(
+  _compileTemplateFilesAndEmit = async (
     inputDir,
     outputDir,
     allFiles,
     dirtyFiles,
     emitter
-  ) {
+  ) => {
     try {
       await this._compileTemplateFilesAsync(
         inputDir,
@@ -252,7 +246,7 @@ export default class SoyCompiler {
     }
 
     return this._finalizeCompileTemplates(outputDir, emitter);
-  }
+  };
 
   /**
    * Compiles all soy files, returning a promise.
@@ -264,7 +258,12 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  async _compileTemplateFilesAsync(inputDir, outputDir, allFiles, dirtyFiles) {
+  _compileTemplateFilesAsync = async (
+    inputDir,
+    outputDir,
+    allFiles,
+    dirtyFiles
+  ) => {
     const options = this._options;
     let outputPathFormat = path.join(
       outputDir,
@@ -383,7 +382,7 @@ export default class SoyCompiler {
     };
 
     return next();
-  }
+  };
 
   /**
    * Compiles all soy files from an input directory, but takes an emitter to use
@@ -393,7 +392,7 @@ export default class SoyCompiler {
    * @param {EventEmitter} emitter
    * @private
    */
-  async _compileTemplatesAndEmit(inputDir, emitter) {
+  _compileTemplatesAndEmit = async (inputDir, emitter) => {
     let files;
     try {
       files = await findFiles(inputDir, 'soy');
@@ -412,14 +411,14 @@ export default class SoyCompiler {
       dirtyFiles,
       emitter
     );
-  }
+  };
 
   /**
    * Finalizes compile templates.
    * @param {EventEmitter} emitter
    * @private
    */
-  _finalizeCompileTemplates(outputDir, emitter) {
+  _finalizeCompileTemplates = (outputDir, emitter) => {
     emitCompile(emitter);
 
     if (
@@ -428,30 +427,30 @@ export default class SoyCompiler {
     ) {
       clean(outputDir);
     }
-  }
+  };
 
   /**
    * Loads precompiled templates into memory.  All .soy.js files within the provided inputDir will be
    * loaded.
    * @param {string} inputDir
    */
-  async loadCompiledTemplates(inputDir) {
+  loadCompiledTemplates = async inputDir => {
     const files = await findFiles(inputDir, 'soy.js');
     const filesMapping = files.map(file => path.join(inputDir, file));
     return this.loadCompiledTemplateFiles(filesMapping);
-  }
+  };
 
   /**
    * Loads an array of template files into memory.
    * @param {Array.<string>} files
    * @param {Object} options
    */
-  async loadCompiledTemplateFiles(files, options) {
+  loadCompiledTemplateFiles = async (files, options) => {
     const { vmType } = options;
 
     const soyVmContext = this.getSoyVmContext(vmType);
     return soyVmContext.loadCompiledTemplateFiles(files);
-  }
+  };
 
   /**
    * Adds a file system watch to the provided files, and executes the fn when changes are detected.
@@ -461,7 +460,12 @@ export default class SoyCompiler {
    * @param {EventEmitter} emitter
    * @private
    */
-  _maybeSetupDynamicRecompile(inputDir, outputDir, relativeFilePaths, emitter) {
+  _maybeSetupDynamicRecompile = (
+    inputDir,
+    outputDir,
+    relativeFilePaths,
+    emitter
+  ) => {
     if (!this._options.allowDynamicRecompile) {
       return;
     }
@@ -520,7 +524,7 @@ export default class SoyCompiler {
         console.warn(`soynode: Error watching ${file}`, e);
       }
     });
-  }
+  };
 
   /**
    * Checks if precompiled files are available, using them as necessary.
@@ -529,7 +533,7 @@ export default class SoyCompiler {
    * @return {Promise<Array.<string>>} Files that we could not find precompiled versions of.
    * @private
    */
-  async _maybeUsePrecompiledFiles(outputDir, files) {
+  _maybeUsePrecompiledFiles = async (outputDir, files) => {
     const { precompiledDir } = this._options;
     if (!precompiledDir) {
       return files;
@@ -567,7 +571,7 @@ export default class SoyCompiler {
       console.error('Failed loading precompiled files', err);
       return files;
     }
-  }
+  };
 
   /**
    * Checks if all locales of a file have been precompiled, and move them to the output directory.
@@ -578,7 +582,12 @@ export default class SoyCompiler {
    * @return {Promise<boolean>} True on success
    * @private
    */
-  async _preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes) {
+  _preparePrecompiledFile = async (
+    outputDir,
+    precompiledDir,
+    file,
+    vmTypes
+  ) => {
     const vmTypesMapping = vmTypes.map(async vmType => {
       const precompiledFileName = this._getOutputFile(
         precompiledDir,
@@ -608,7 +617,7 @@ export default class SoyCompiler {
 
     const array = await Promise.all(vmTypesMapping);
     return array.every(Boolean);
-  }
+  };
 
   /**
    * Concatenates all output files into a single file.
@@ -617,7 +626,7 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @private
    */
-  _concatOutput(outputDir, files, vmType) {
+  _concatOutput = (outputDir, files, vmType) => {
     const options = this._options;
     let { concatFileName } = options;
     if (options.locales && options.locales.length > 1) {
@@ -631,21 +640,21 @@ export default class SoyCompiler {
       .join('');
 
     fs.writeFileSync(target, concatenated);
-  }
+  };
 
   /**
    * @param {string} outputDir
    * @param {string} file
    * @param {string=} vmType
    */
-  _getOutputFile(outputDir, file, vmType) {
+  _getOutputFile = (outputDir, file, vmType) => {
     const options = this._options;
     vmType = vmType || DEFAULT_VM_CONTEXT;
     if (options.locales && options.locales.length > 1) {
       return `${path.join(outputDir, vmType, file)}.js`;
     }
     return `${path.join(outputDir, file)}.js`;
-  }
+  };
 
   /**
    * Does all processing that happens after the compiling ends.
@@ -655,7 +664,7 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  async _postCompileProcess(outputDir, files, vmType) {
+  _postCompileProcess = async (outputDir, files, vmType) => {
     const options = this._options;
     vmType = vmType || DEFAULT_VM_CONTEXT;
 
@@ -676,5 +685,5 @@ export default class SoyCompiler {
       return this.loadCompiledTemplateFiles(templatePaths, { vmType });
     }
     return true;
-  }
+  };
 }
