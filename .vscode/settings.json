@@ -8,6 +8,9 @@
     ".flowconfig": "ignore"
   },
 
+  "flow.useNPMPackagedFlow": true,
+  "npm.packageManager": "yarn",
+
   "javascript.validate.enable": false,
   "javascript.format.enable": false,
   "typescript.validate.enable": false,
