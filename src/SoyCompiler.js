@@ -84,11 +84,12 @@ async function findFiles(directory, extension) {
  * @constructor
  */
 export default class SoyCompiler {
-  constructor() {
+  constructor(options) {
     this._defaultOptions = new SoyOptions();
 
     /** @private {SoyOptions} */
     this._options = this._defaultOptions;
+    this.setOptions(options);
 
     /**
      * VM Context that is used as the global when fetching templates.  The end result is that this
