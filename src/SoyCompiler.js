@@ -8,7 +8,6 @@ import { promisify } from 'util';
 import rimraf from 'rimraf';
 import SoyVmContext from './SoyVmContext';
 import SoyOptions from './SoyOptions';
-import copy from './copy';
 
 /**
  * The key in vmContexts for the default vm context (with no locale).
@@ -603,7 +602,7 @@ export default class SoyCompiler {
 
       if (outputFileName !== precompiledFileName) {
         await promisify(fs.mkdirs)(path.dirname(outputFileName));
-        await promisify(copy)(precompiledFileName, outputFileName);
+        await promisify(fs.copy)(precompiledFileName, outputFileName);
       }
       return true;
     });
