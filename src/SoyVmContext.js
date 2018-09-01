@@ -72,12 +72,13 @@ const CLOSURE_PATHS = [
 );
 
 function pathsToPromises(paths) {
-  return paths.map(pathToPromise =>
-    promisify(fs.readFile)(pathToPromise, 'utf8').then(contents => ({
+  return paths.map(async pathToPromise => {
+    const contents = await promisify(fs.readFile)(pathToPromise, 'utf8');
+    return {
       path: pathToPromise,
       contents,
-    }))
-  );
+    };
+  });
 }
 
 let supportFilePromises = null;
@@ -111,24 +112,26 @@ const RESET_DELTEMPLATE_REGISTRY_CODE =
  * @param {Array.<Promise>} filePromises Promises of {path, contents} tuples
  * @return {Promise.Promise}
  */
-function loadFiles(context, filePromises) {
+async function loadFiles(context, filePromises) {
   let i = 0;
 
-  function next(result) {
+  async function next(result) {
     // Evaluate the template code in the context of the soy VM context.  Any variables defined
     // in the template file will become members of the vmContext object.
     vm.runInContext(result.contents, context, result.path);
 
     if (i >= filePromises.length) {
-      return Promise.resolve(true);
+      return true;
     }
-    return filePromises[i++].then(next);
+    const nextResult = await filePromises[i++];
+    return next(nextResult);
   }
 
   if (!filePromises.length) {
-    return Promise.resolve(true);
+    return true;
   }
-  return filePromises[i++].then(next);
+  const result = await filePromises[i++];
+  return next(result);
 }
 
 /**
@@ -224,44 +227,28 @@ export default class SoyVmContext {
   /**
    * Loads an array of template files into memory.
    * @param {Array.<string>} files
-   * @param {function (Error, boolean)=} callback
    */
-  loadCompiledTemplateFiles(files, callback) {
+  async loadCompiledTemplateFiles(files) {
     const options = this._options;
-    const self = this;
 
     // load the contextJsPaths into the context before the soy template JS
     const filePromises = pathsToPromises(options.contextJsPaths.concat(files));
     const supportedFilePromises = getSupportFilePromises(options.soyUtilsPath);
 
-    let result = Promise.resolve(true);
-    if (self._contextInitialized) {
-      result = (async () => {
-        vm.runInContext(
-          RESET_DELTEMPLATE_REGISTRY_CODE,
-          self.getContext(),
-          'soynode-reset.'
-        );
-      })();
+    if (this._contextInitialized) {
+      vm.runInContext(
+        RESET_DELTEMPLATE_REGISTRY_CODE,
+        this.getContext(),
+        'soynode-reset.'
+      );
     } else {
-      result = result
-        .then(() => loadFiles(self.getContext(), supportedFilePromises))
-        .then(() => {
-          self._contextInitialized = true;
-          return null;
-        });
+      await loadFiles(this.getContext(), supportedFilePromises);
+      this._contextInitialized = true;
     }
 
-    result
-      .then(() => loadFiles(self.getContext(), filePromises))
-      .then(
-        finalResult => {
-          // Blow away the cache when all files have been loaded
-          self._templateCache = {};
-          return callback(null, finalResult);
-        },
-        err => callback(err)
-      )
-      .catch(err => callback(err));
+    const finalResult = await loadFiles(this.getContext(), filePromises);
+    // Blow away the cache when all files have been loaded
+    this._templateCache = {};
+    return finalResult;
   }
 }

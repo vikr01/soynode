@@ -1,11 +1,12 @@
 // Copyright 2014. A Medium Corporation.
 
 import { EventEmitter } from 'events';
-import childProcess, { exec } from 'child_process';
+import childProcess from 'child_process';
 import closureTemplates from 'closure-templates';
 import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
+import rimraf from 'rimraf';
 import SoyVmContext from './SoyVmContext';
 import SoyOptions from './SoyOptions';
 import copy from './copy';
@@ -32,12 +33,12 @@ function emitCompile(emitter, err) {
   }
 }
 
-/**
- * Callback that will log an error.
- */
-function logErrorOrDone(err) {
-  if (err) console.error('soynode:', err);
-  else console.log('soynode: Done');
+async function clean(outputDir) {
+  try {
+    await promisify(rimraf)(outputDir);
+  } catch (err) {
+    console.error('soynode: Error deleting temporary files', err);
+  }
 }
 
 /**
@@ -177,39 +178,28 @@ export default class SoyCompiler {
    * Compiles all soy files within the provided directory and loads them into memory.  The callback
    * will be called when templates are ready, or an error occurred along the way.
    * @param {string} inputDir
-   * @param {function (Error, boolean)=} callback
    * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile
    *     This is particularly useful if you have allowDynamicRecompile on, so that your server
    *     can propagate the error appropriately. The "compile" event has two arguments: (error, success).
    */
-  compileTemplates(inputDir, callback) {
-    const options = this._options;
+  async compileTemplates(inputDir) {
     const emitter = new EventEmitter();
-    if (options.allowDynamicRecompile) {
-      emitter.on('compile', logErrorOrDone);
-    }
-    if (callback) {
-      emitter.once('compile', callback);
-    }
     this._compileTemplatesAndEmit(inputDir, emitter);
-    return emitter;
+    await promisify(emitter.once).bind(emitter)('compile');
   }
 
   /**
-   * Compiles all soy files within the provided array and loads them into memory.  The callback
-   * will be called when templates are ready, or an error occurred along the way.
+   * Compiles all soy files within the provided array and loads them into memory.
    * @param {Array.<string>} files
-   * @param {function (Error, boolean)=} callback
    * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile.
    */
   async compileTemplateFiles(files) {
     const emitter = new EventEmitter();
     const outputDir = this._createOutputDir();
     const { inputDir } = this._options;
-    const self = this;
     const dirtyFiles = await this._maybeUsePrecompiledFiles(outputDir, files);
-    self._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
-    self._compileTemplateFilesAndEmit(
+    this._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
+    this._compileTemplateFilesAndEmit(
       inputDir,
       outputDir,
       files,
@@ -246,23 +236,25 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  _compileTemplateFilesAndEmit(
+  async _compileTemplateFilesAndEmit(
     inputDir,
     outputDir,
     allFiles,
     dirtyFiles,
     emitter
   ) {
-    const self = this;
-    return this._compileTemplateFilesAsync(
-      inputDir,
-      outputDir,
-      allFiles,
-      dirtyFiles
-    ).then(
-      () => self._finalizeCompileTemplates(outputDir, emitter),
-      err => emitCompile(emitter, err)
-    );
+    try {
+      await this._compileTemplateFilesAsync(
+        inputDir,
+        outputDir,
+        allFiles,
+        dirtyFiles
+      );
+    } catch (err) {
+      return emitCompile(emitter, err);
+    }
+
+    return this._finalizeCompileTemplates(outputDir, emitter);
   }
 
   /**
@@ -404,36 +396,25 @@ export default class SoyCompiler {
    * @param {EventEmitter} emitter
    * @private
    */
-  _compileTemplatesAndEmit(inputDir, emitter) {
-    const self = this;
-    findFiles(inputDir, 'soy')
-      .then(files => {
-        if (files.length === 0) return emitCompile(emitter);
+  async _compileTemplatesAndEmit(inputDir, emitter) {
+    let files;
+    try {
+      files = await findFiles(inputDir, 'soy');
+    } catch (err) {
+      return emitCompile(emitter, err);
+    }
 
-        const outputDir = self._createOutputDir();
-        return self
-          ._maybeUsePrecompiledFiles(outputDir, files)
-          .then(dirtyFiles => {
-            self._maybeSetupDynamicRecompile(
-              inputDir,
-              outputDir,
-              files,
-              emitter
-            );
-            return self._compileTemplateFilesAndEmit(
-              inputDir,
-              outputDir,
-              files,
-              dirtyFiles,
-              emitter
-            );
-          })
-
-          .catch(error => {
-            throw error;
-          });
-      })
-      .catch(err => emitCompile(emitter, err));
+    if (files.length === 0) return emitCompile(emitter);
+    const outputDir = this._createOutputDir();
+    const dirtyFiles = await this._maybeUsePrecompiledFiles(outputDir, files);
+    this._maybeSetupDynamicRecompile(inputDir, outputDir, files, emitter);
+    return this._compileTemplateFilesAndEmit(
+      inputDir,
+      outputDir,
+      files,
+      dirtyFiles,
+      emitter
+    );
   }
 
   /**
@@ -448,10 +429,7 @@ export default class SoyCompiler {
       this._options.eraseTemporaryFiles &&
       !this._options.allowDynamicRecompile
     ) {
-      exec(`rm -r '${outputDir}'`, {}, err => {
-        // TODO(dan): This is a pretty nasty way to delete the files.  Maybe use rimraf
-        if (err) console.error('soynode: Error deleting temporary files', err);
-      });
+      clean(outputDir);
     }
   }
 
@@ -459,34 +437,23 @@ export default class SoyCompiler {
    * Loads precompiled templates into memory.  All .soy.js files within the provided inputDir will be
    * loaded.
    * @param {string} inputDir
-   * @param {function (Error, boolean)}
    */
-  loadCompiledTemplates(inputDir, callback) {
-    const self = this;
-    findFiles(inputDir, 'soy.js', (err, files) => {
-      if (err) return callback(err, false);
-      files = files.map(file => path.join(inputDir, file));
-      return self.loadCompiledTemplateFiles(files, callback);
-    });
+  async loadCompiledTemplates(inputDir) {
+    const files = await findFiles(inputDir, 'soy.js');
+    const filesMapping = files.map(file => path.join(inputDir, file));
+    return this.loadCompiledTemplateFiles(filesMapping);
   }
 
   /**
    * Loads an array of template files into memory.
    * @param {Array.<string>} files
-   * @param {function (Error, boolean) | Object} callbackOrOptions
-   * @param {function (Error, boolean)=} callback
+   * @param {Object} options
    */
-  loadCompiledTemplateFiles(files, callbackOrOptions, callback) {
-    let vmType = DEFAULT_VM_CONTEXT;
+  async loadCompiledTemplateFiles(files, options) {
+    const { vmType } = options;
 
-    if (typeof callbackOrOptions === 'function') {
-      callback = callbackOrOptions;
-    } else {
-      const { vmType: vmType2 } = callbackOrOptions;
-      vmType = vmType2;
-    }
-
-    this.getSoyVmContext(vmType).loadCompiledTemplateFiles(files, callback);
+    const soyVmContext = this.getSoyVmContext(vmType);
+    return soyVmContext.loadCompiledTemplateFiles(files);
   }
 
   /**
@@ -504,54 +471,58 @@ export default class SoyCompiler {
 
     let currentCompilePromise = Promise.resolve(true);
     let dirtyFileSet = {};
-    const self = this;
-    relativeFilePaths.forEach(relativeFile => {
+    relativeFilePaths.forEach(async relativeFile => {
       const file = path.resolve(inputDir, relativeFile);
-      if (self._watches[file]) return;
-      try {
-        self._watches[file] = Date.now();
+      if (this._watches[file]) return;
 
-        fs.watchFile(file, {}, () => {
+      try {
+        this._watches[file] = Date.now();
+
+        fs.watchFile(file, {}, async () => {
           const now = Date.now();
           // Ignore spurious change events.
           console.log('soynode: caught change to ', file);
-          if (now - self._watches[file] < 1000) return Promise.resolve(true);
+          if (now - this._watches[file] < 1000) return true;
 
           dirtyFileSet[relativeFile] = true;
-          self._watches[file] = now;
+          this._watches[file] = now;
 
           // Wait until the previous compile has completed before starting a new one.
-          currentCompilePromise = currentCompilePromise
-            .then(() => {
-              const dirtyFiles = Object.keys(dirtyFileSet);
-              if (!dirtyFiles.length) {
-                // Nothing needs to be recompiled because it was already caught by another job.
-                return null;
-              }
-              dirtyFileSet = {};
-              console.log(
-                'soynode: Recompiling templates due to change in %s',
-                dirtyFiles
-              );
-              return self._compileTemplateFilesAndEmit(
-                inputDir,
-                outputDir,
-                relativeFilePaths,
-                dirtyFiles,
-                emitter
-              );
-            })
-            .catch(err => {
-              console.warn('soynode: Error recompiling ', err);
-            });
+          try {
+            await currentCompilePromise;
+          } catch (err) {
+            console.warn('soynode: Error recompiling ', err);
+            return undefined;
+          }
 
-          // Return the promise, for use when testing. fs.watchFile will just ignore this.
+          const dirtyFiles = Object.keys(dirtyFileSet);
+          if (!dirtyFiles.length) {
+            // Nothing needs to be recompiled because it was already caught by another job.
+            currentCompilePromise = Promise.resolve(null);
+            return undefined;
+          }
+          dirtyFileSet = {};
+          console.log(
+            'soynode: Recompiling templates due to change in %s',
+            dirtyFiles
+          );
+
+          currentCompilePromise = this._compileTemplateFilesAndEmit(
+            inputDir,
+            outputDir,
+            relativeFilePaths,
+            dirtyFiles,
+            emitter
+          );
+
           return currentCompilePromise;
         });
+
+        // Return the promise, for use when testing. fs.watchFile will just ignore this.
       } catch (e) {
         console.warn(`soynode: Error watching ${file}`, e);
       }
-    }, this);
+    });
   }
 
   /**
@@ -561,7 +532,7 @@ export default class SoyCompiler {
    * @return {Promise<Array.<string>>} Files that we could not find precompiled versions of.
    * @private
    */
-  _maybeUsePrecompiledFiles(outputDir, files) {
+  async _maybeUsePrecompiledFiles(outputDir, files) {
     const { precompiledDir } = this._options;
     if (!precompiledDir) {
       return Promise.resolve(files);
@@ -573,32 +544,32 @@ export default class SoyCompiler {
       vmTypes = options.locales.concat(); // clone
     }
 
-    const self = this;
-    return Promise.resolve(true)
-      .then(() =>
-        // Return an array of files that don't have precompiled versions.
-        Promise.all(
-          files.map(file =>
-            self
-              ._preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes)
-              .then(ok => (ok ? '' : file))
-          )
-        )
-      )
-      .then(dirtyFiles => {
-        dirtyFiles = dirtyFiles.filter(Boolean); // filter out empty strings.
-        if (dirtyFiles.length !== files.length) {
-          console.log(
-            'Loaded %s precompiled files',
-            files.length - dirtyFiles.length
-          );
-        }
-        return dirtyFiles;
-      })
-      .catch(err => {
-        console.error('Failed loading precompiled files', err);
-        return files;
+    try {
+      const filesMapping = files.map(async file => {
+        const ok = await this._preparePrecompiledFile(
+          outputDir,
+          precompiledDir,
+          file,
+          vmTypes
+        );
+        return ok ? '' : file;
       });
+
+      // Return an array of files that don't have precompiled versions.
+      const dirtyFiles = (await Promise.all(filesMapping)).filter(Boolean); // filter out empty strings.
+
+      if (dirtyFiles.length !== files.length) {
+        console.log(
+          'Loaded %s precompiled files',
+          files.length - dirtyFiles.length
+        );
+      }
+
+      return dirtyFiles;
+    } catch (err) {
+      console.error('Failed loading precompiled files', err);
+      return files;
+    }
   }
 
   /**
@@ -610,40 +581,36 @@ export default class SoyCompiler {
    * @return {Promise<boolean>} True on success
    * @private
    */
-  _preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes) {
-    const self = this;
-    const precompiledFilesOkPromise = Promise.all(
-      vmTypes.map(vmType => {
-        const precompiledFileName = self._getOutputFile(
-          precompiledDir,
-          file,
-          vmType
-        );
-        const outputFileName = self._getOutputFile(outputDir, file, vmType);
+  async _preparePrecompiledFile(outputDir, precompiledDir, file, vmTypes) {
+    const vmTypesMapping = vmTypes.map(async vmType => {
+      const precompiledFileName = this._getOutputFile(
+        precompiledDir,
+        file,
+        vmType
+      );
 
-        const precompiledFileOkPromise = promisify(fs.stat)(
-          precompiledFileName
-        ).then(
-          exists => {
-            if (!exists) {
-              return false;
-            }
+      const outputFileName = this._getOutputFile(outputDir, file, vmType);
 
-            if (outputFileName !== precompiledFileName) {
-              return promisify(fs.mkdirs)(path.dirname(outputFileName))
-                .then(() =>
-                  promisify(copy)(precompiledFileName, outputFileName)
-                )
-                .then(() => true);
-            }
-            return true;
-          },
-          () => false // stat is expected to error out if the file isn't there.
-        );
-        return precompiledFileOkPromise;
-      })
-    );
-    return precompiledFilesOkPromise.then(array => array.every(Boolean));
+      let exists;
+      try {
+        exists = await promisify(fs.stat)(precompiledFileName);
+      } catch (err) {
+        exists = false;
+      }
+
+      if (!exists) {
+        return false;
+      }
+
+      if (outputFileName !== precompiledFileName) {
+        await promisify(fs.mkdirs)(path.dirname(outputFileName));
+        await promisify(copy)(precompiledFileName, outputFileName);
+      }
+      return true;
+    });
+
+    const array = await Promise.all(vmTypesMapping);
+    return array.every(Boolean);
   }
 
   /**
@@ -691,14 +658,14 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  _postCompileProcess(outputDir, files, vmType) {
+  async _postCompileProcess(outputDir, files, vmType) {
     const options = this._options;
     vmType = vmType || DEFAULT_VM_CONTEXT;
 
     // Build a list of paths that we expect as output of the soy compiler.
-    const templatePaths = files.map(function(file) {
-      return this._getOutputFile(outputDir, file, vmType);
-    }, this);
+    const templatePaths = files.map(file =>
+      this._getOutputFile(outputDir, file, vmType)
+    );
 
     try {
       if (options.concatOutput)
@@ -709,10 +676,8 @@ export default class SoyCompiler {
 
     if (options.loadCompiledTemplates) {
       // Load the compiled templates into memory.
-      return promisify(
-        this.loadCompiledTemplateFiles.bind(this, templatePaths, { vmType })
-      )();
+      return this.loadCompiledTemplateFiles(templatePaths, { vmType });
     }
-    return Promise.resolve(true);
+    return true;
   }
 }
