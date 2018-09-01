@@ -16,10 +16,12 @@ let spawnOpts;
 let spawnArgs;
 let time;
 let soyCompiler;
-const tmpDir1 = path.join(__dirname, 'tmp1');
-const tmpDir2 = path.join(__dirname, 'tmp2');
+const tmpDirs = {
+  tmp1: path.join(__dirname, 'tmp1'),
+  tmp2: path.join(__dirname, 'tmp2'),
+};
 
-function assertTemplatesContents(locale, opt_soyCompiler) {
+const assertTemplatesContents = (locale, opt_soyCompiler) => {
   const underTest = opt_soyCompiler || soyCompiler;
   const template1 = underTest.render(
     'template1.formletter',
@@ -63,19 +65,17 @@ function assertTemplatesContents(locale, opt_soyCompiler) {
       );
       break;
   }
-}
+};
 
 beforeEach(() => {
   soyCompiler = new SoyCompiler();
 
   time = 1;
-  Date.now = function() {
-    return time;
-  };
+  Date.now = () => time;
 
   watchFiles = [];
   watchCallbacks = [];
-  fs.watchFile = function(f, opts, callback) {
+  fs.watchFile = (f, opts, callback) => {
     watchFiles.push(f);
     watchCallbacks.push(callback);
   };
@@ -95,8 +95,8 @@ describe('Basic', () => {
   afterEach(() => {
     Date.now = now;
     fs.watchFile = watchFile;
-    fs.removeSync(tmpDir1);
-    fs.removeSync(tmpDir2);
+    fs.removeSync(tmpDirs.tmp1);
+    fs.removeSync(tmpDirs.tmp2);
     child_process.spawn = spawn;
   });
 
@@ -268,9 +268,9 @@ describe('Basic', () => {
 
   test('test precompile templates one compiler', async () => {
     soyCompiler.setOptions({
-      outputDir: tmpDir1,
+      outputDir: tmpDirs.tmp1,
       uniqueDir: false,
-      precompiledDir: tmpDir1,
+      precompiledDir: tmpDirs.tmp1,
     });
 
     await soyCompiler.compileTemplates(assetsPath);
@@ -285,13 +285,13 @@ describe('Basic', () => {
 
   test('test precompile templates two compilers', async () => {
     soyCompiler.setOptions({
-      outputDir: tmpDir1,
+      outputDir: tmpDirs.tmp1,
       uniqueDir: false,
     });
 
     const soyCompilerB = new SoyCompiler({
-      precompiledDir: tmpDir1,
-      outputDir: tmpDir2,
+      precompiledDir: tmpDirs.tmp1,
+      outputDir: tmpDirs.tmp2,
       uniqueDir: false,
     });
 
@@ -308,9 +308,9 @@ describe('Basic', () => {
 
   test('test precompile templates one compiler mult languages', async () => {
     soyCompiler.setOptions({
-      outputDir: tmpDir1,
+      outputDir: tmpDirs.tmp1,
       uniqueDir: false,
-      precompiledDir: tmpDir1,
+      precompiledDir: tmpDirs.tmp1,
       locales: ['pt-BR', 'es'],
       messageFilePathFormat: path.join(assetsPath, 'translations_{LOCALE}.xlf'),
     });
