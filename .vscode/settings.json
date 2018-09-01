@@ -8,10 +8,6 @@
     ".flowconfig": "ignore"
   },
 
-  "files.exclude": {
-    "**/.git": false
-  },
-
   "javascript.validate.enable": false,
   "javascript.format.enable": false,
   "typescript.validate.enable": false,
