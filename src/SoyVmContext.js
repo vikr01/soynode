@@ -3,14 +3,15 @@
 import fs from 'fs';
 import vm from 'vm';
 import path from 'path';
-import closureTemplates from 'closure-templates';
 import { promisify } from 'util';
 
 /**
  * Resolved path to Soy utils JS script.
  * @type {string}
  */
-const SOY_UTILS_PATH = closureTemplates['soyutils_usegoog.js'];
+const PATH_TO_SOY_UTILS = require.resolve(
+  'google-closure-templates/javascript/soyutils_usegoog.js'
+);
 
 /**
  * All the dependencies of soyutils_usegoog.js
@@ -89,7 +90,7 @@ let supportFilePromises = null;
 function getSupportFilePromises(soyUtilsPath) {
   if (supportFilePromises) return supportFilePromises;
 
-  soyUtilsPath = soyUtilsPath || SOY_UTILS_PATH;
+  soyUtilsPath = soyUtilsPath || PATH_TO_SOY_UTILS;
 
   const paths = CLOSURE_PATHS.concat([soyUtilsPath]);
   supportFilePromises = pathsToPromises(paths);

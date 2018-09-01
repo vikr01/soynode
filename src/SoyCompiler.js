@@ -2,7 +2,6 @@
 
 import { EventEmitter } from 'events';
 import childProcess from 'child_process';
-import closureTemplates from 'closure-templates';
 import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
@@ -20,7 +19,9 @@ const DEFAULT_VM_CONTEXT = 'default';
  * Resolved path to the executable jar for the Closure Template compiler.
  * @type {string}
  */
-const PATH_TO_SOY_JAR = closureTemplates['SoyToJsSrcCompiler.jar'];
+const PATH_TO_SOY_JAR = require.resolve(
+  'google-closure-templates/javascript/SoyToJsSrcCompiler.jar'
+);
 
 /**
  * Emits the compile event. Swallows any errors thrown by the receiver.

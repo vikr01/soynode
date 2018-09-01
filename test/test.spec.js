@@ -264,9 +264,7 @@ describe('Basic', () => {
       'assets/template2.soy.js'
     );
     const contents = await promisify(fs.readFile)(soyJsFilePath, 'utf8');
-    expect(
-      contents.indexOf('template1.formletter(opt_data, null, opt_ijData)')
-    ).not.toEqual(-1);
+    expect(contents.indexOf('template1.formletter(opt_data)')).not.toEqual(-1);
   });
 
   test('test precompile templates one compiler', async () => {
