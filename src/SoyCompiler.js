@@ -175,12 +175,8 @@ export default class SoyCompiler {
   }
 
   /**
-   * Compiles all soy files within the provided directory and loads them into memory.  The callback
-   * will be called when templates are ready, or an error occurred along the way.
+   * Compiles all soy files within the provided directory and loads them into memory.
    * @param {string} inputDir
-   * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile
-   *     This is particularly useful if you have allowDynamicRecompile on, so that your server
-   *     can propagate the error appropriately. The "compile" event has two arguments: (error, success).
    */
   async compileTemplates(inputDir) {
     const emitter = new EventEmitter();
@@ -379,7 +375,7 @@ export default class SoyCompiler {
 
     const next = async () => {
       if (vmTypes.length === 0) {
-        return Promise.resolve(true);
+        return true;
       }
       await this._postCompileProcess(outputDir, allFiles, vmTypes.pop());
       return next();
@@ -535,7 +531,7 @@ export default class SoyCompiler {
   async _maybeUsePrecompiledFiles(outputDir, files) {
     const { precompiledDir } = this._options;
     if (!precompiledDir) {
-      return Promise.resolve(files);
+      return files;
     }
 
     let vmTypes = [DEFAULT_VM_CONTEXT];
