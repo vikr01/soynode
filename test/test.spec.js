@@ -290,8 +290,7 @@ describe('Basic', () => {
       uniqueDir: false,
     });
 
-    const soyCompilerB = new SoyCompiler();
-    soyCompilerB.setOptions({
+    const soyCompilerB = new SoyCompiler({
       precompiledDir: tmpDir1,
       outputDir: tmpDir2,
       uniqueDir: false,
