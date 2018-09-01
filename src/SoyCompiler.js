@@ -33,14 +33,6 @@ function emitCompile(emitter, err) {
   }
 }
 
-/**
- * Callback that will log an error.
- */
-function logErrorOrDone(err) {
-  if (err) console.error('soynode:', err);
-  else console.log('soynode: Done');
-}
-
 async function clean(outputDir) {
   try {
     await promisify(rimraf)(outputDir);
@@ -186,22 +178,14 @@ export default class SoyCompiler {
    * Compiles all soy files within the provided directory and loads them into memory.  The callback
    * will be called when templates are ready, or an error occurred along the way.
    * @param {string} inputDir
-   * @param {function (Error, boolean)=} callback
    * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile
    *     This is particularly useful if you have allowDynamicRecompile on, so that your server
    *     can propagate the error appropriately. The "compile" event has two arguments: (error, success).
    */
-  compileTemplates(inputDir, callback) {
-    const options = this._options;
+  async compileTemplates(inputDir) {
     const emitter = new EventEmitter();
-    if (options.allowDynamicRecompile) {
-      emitter.on('compile', logErrorOrDone);
-    }
-    if (callback) {
-      emitter.once('compile', callback);
-    }
     this._compileTemplatesAndEmit(inputDir, emitter);
-    return emitter;
+    await promisify(emitter.once).bind(emitter)('compile');
   }
 
   /**
