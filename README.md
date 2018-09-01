@@ -19,15 +19,14 @@ Either:
 ```js
 import { SoyCompiler } from 'soynode';
 
-const soynode = new SoyCompiler();
-
-soynode.setOptions({
+const soynode = new SoyCompiler({
   outputDir: '/tmp/soynode-example',
   allowDynamicRecompile: true,
 });
 
-soynode.compileTemplates(__dirname, err => {
-  if (err) throw err;
+(async () => {
+  await soynode.compileTemplates(__dirname);
+
   // Templates are now ready to use.
   console.log(
     soynode.render('example.message.hello', {
@@ -35,6 +34,8 @@ soynode.compileTemplates(__dirname, err => {
       date: new Date().toLocaleTimeString(),
     })
   );
+})().catch(err => {
+  throw err;
 });
 ```
 
@@ -46,13 +47,13 @@ Also, see `examples/example.js`.
 
 `soynode.setOptions(opts)` - Change the options, see section below.
 
-`soynode.compileTemplates(dir, callback)` - Compiles and loads all `.soy` files in the directory.
+`soynode.compileTemplates(dir)` - Asynchronously compiles and loads all `.soy` files in the directory.
 
-`soynode.compileTemplateFiles(files, callback)` - Compiles and loads all `.soy` files.
+`soynode.compileTemplateFiles(files)` - Asynchronously compiles and loads all `.soy` files.
 
-`soynode.loadCompiledTemplates(dir, callback)` - Loads already compiled templates.
+`soynode.loadCompiledTemplates(dir)` - Asynchronously loads already compiled templates.
 
-`soynode.loadCompiledTemplateFiles(files, callback)` - Loads already compiled templates.
+`soynode.loadCompiledTemplateFiles(files)` - Asynchronously loads already compiled templates.
 
 Where "template name" is referred to, it means the namespace + template name as defined in the Soy
 file, and the full JS name that the Soy Compiler generates, for example `project.section.screen`.
@@ -61,7 +62,7 @@ the Closure site for more background.
 
 ## Options
 
-Options can be set via `soynode.setOptions(options)`. Most of these mirror
+Options can be set via `new SoyCompiler(options)` or `soynode.setOptions(options)`. Most of these mirror
 [the command-line arguments](https://developers.google.com/closure/templates/docs/javascript_usage)
 for `SoyToJsSrcCompiler`. The keys can contain the following:
 
@@ -96,19 +97,20 @@ To take advantage of soy's [translation](https://developers.google.com/closure/t
 ```js
 import { SoyCompiler } from 'soynode';
 
-const soynode = new SoyCompiler();
-
-soynode.setOptions({
+const soynode = new SoyCompiler({
   locales: ['pt-BR', 'es'],
   messageFilePathFormat: '/tmp/soynode-example/translations.xlf',
   outputDir: '/tmp/soynode-example',
 });
 
-soynode.compileTemplates(__dirname, function(err) {
-  if (err) throw err;
+(async () => {
+  await soynode.compileTemplates(__dirname);
+
   // Templates are now ready to use, render specifying the desired locale.
   console.log(soynode.render('example.message.hello', {}, {}, 'pt-BR'));
   console.log(soynode.render('example.message.hello', {}, {}, 'es'));
+})().catch(err => {
+  throw err;
 });
 ```
 
