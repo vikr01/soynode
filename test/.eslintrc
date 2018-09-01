@@ -1,16 +1,4 @@
 {
   "plugins": ["jest"],
-  "extends": ["plugin:jest/recommended"],
-  "globals": {
-    "afterEach": true,
-    "beforeEach": true,
-    "describe": true,
-    "it": true,
-    "expect": true,
-    "test": true
-  },
-  "rules": {
-    "prefer-rest-params": 1,
-    "import/no-extraneous-dependencies": 0
-  }
+  "extends": ["plugin:jest/recommended"]
 }
