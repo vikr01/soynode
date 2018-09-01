@@ -113,8 +113,8 @@ describe('Basic', () => {
     ]);
     expect(spawnOpts).toEqual([{ cwd: `${__dirname}/assets` }]);
 
-    const args1 = spawnArgs[0];
-    expect(args1.slice(args1.length - 3, args1.length)).toEqual([
+    const [args1] = spawnArgs;
+    expect(args1.slice(-3)).toEqual([
       'template1.soy',
       'template2.soy',
       'template3.soy',
@@ -333,21 +333,21 @@ describe('Basic', () => {
 
     await soyCompiler.compileTemplates(`${__dirname}/assets`);
 
-    const args1 = spawnArgs.slice(0)[0];
+    const [args1] = spawnArgs;
     expect(args1.pop()).toEqual('template3.soy');
     time += 1000;
     await delay(1);
 
     await watchCallbacks[1]();
 
-    const args2 = spawnArgs.slice(0)[0];
+    const [args2] = spawnArgs;
     expect(args2.pop()).toEqual('template2.soy');
     time += 1000;
     await delay(1);
 
     await watchCallbacks[0]();
 
-    const args3 = spawnArgs.slice(0)[0];
+    const [args3] = spawnArgs;
     expect(args3.pop()).toEqual('template1.soy');
   });
 });
