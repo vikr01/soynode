@@ -1,6 +1,7 @@
+// @flow
 // Copyright 2014. A Medium Corporation.
 
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import childProcess from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
@@ -25,7 +26,7 @@ function emitCompile(emitter, err) {
   }
 }
 
-async function clean(outputDir) {
+async function clean(outputDir: string): Promise<void> {
   try {
     await promisify(rimraf)(outputDir);
   } catch (err) {
@@ -39,11 +40,14 @@ async function clean(outputDir) {
  * @param {string} directory
  * @param {string} extension
  */
-async function findFiles(directory, extension) {
+async function findFiles(
+  directory: string,
+  extension: string
+): Promise<Array<string>> {
   const files = [];
   const stack = [directory];
 
-  async function next() {
+  async function next(): Promise<Array<string>> {
     if (stack.length === 0) {
       return files;
     }
@@ -76,13 +80,15 @@ async function findFiles(directory, extension) {
  * @constructor
  */
 export default class SoyCompiler {
-  constructor(options) {
-    this._defaultOptions = new SoyOptions();
+  _options: SoyVmContext;
 
-    /** @private {SoyOptions} */
+  constructor(options: SoyVmContext = {}) {
     this._options = this._defaultOptions;
     this.setOptions(options);
   }
+
+  _defaultOptions = new SoyOptions();
+  /** @private {SoyOptions} */
 
   /**
    * VM Context that is used as the global when fetching templates.  The end result is that this
@@ -98,7 +104,7 @@ export default class SoyCompiler {
   _watches = {};
 
   /** @return {SoyOptions} */
-  getDefaultOptions = () => this._defaultOptions;
+  getDefaultOptions = (): SoyOptions => this._defaultOptions;
 
   /**
    * Sets options which affect how soynode operates.
@@ -109,7 +115,7 @@ export default class SoyCompiler {
    *     allowDynamicRecompile: boolean=,
    *     eraseTemporaryFiles: boolean=}}} opts
    */
-  setOptions = opts => {
+  setOptions = (opts: Object) => {
     this._options.merge(opts);
   };
 
@@ -122,8 +128,8 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @return {function (Object) : string}
    */
-  get = (templateName, vmType) =>
-    this.getSoyVmContext(vmType || DEFAULT_VM_CONTEXT).get(templateName);
+  get = (templateName: string, vmType: ?string) =>
+    this.getSoyVmContext(vmType).get(templateName);
 
   /**
    * Renders a template using the provided data and returns the resultant string.
@@ -133,7 +139,12 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @return {string}
    */
-  render = (templateName, data, injectedData, vmType) =>
+  render = (
+    templateName: string,
+    data: string,
+    injectedData: string,
+    vmType: string
+  ) =>
     // Certain autoescape modes of closure-templates return a Content object
     // instead of a string, so force a string.
     String(this.get(templateName, vmType)(data, null, injectedData));
@@ -143,9 +154,8 @@ export default class SoyCompiler {
    *
    * @param {string=} vmType optional type of the vm
    */
-  getSoyVmContext = vmType => {
+  getSoyVmContext = (vmType: ?string) => {
     vmType = vmType || DEFAULT_VM_CONTEXT;
-
     if (!this._vmContexts[vmType]) {
       this._vmContexts[vmType] = new SoyVmContext(vmType, this._options);
     }
@@ -159,13 +169,13 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @return {Object}
    */
-  getVMContext = vmType => this.getSoyVmContext(vmType).getContext();
+  getVMContext = (vmType: string) => this.getSoyVmContext(vmType).getContext();
 
   /**
    * Compiles all soy files within the provided directory and loads them into memory.
    * @param {string} inputDir
    */
-  compileTemplates = async inputDir => {
+  compileTemplates = async (inputDir: string): Promise<void> => {
     const emitter = new EventEmitter();
     this._compileTemplatesAndEmit(inputDir, emitter);
     await promisify(emitter.once).bind(emitter)('compile');
@@ -174,9 +184,9 @@ export default class SoyCompiler {
   /**
    * Compiles all soy files within the provided array and loads them into memory.
    * @param {Array.<string>} files
-   * @return {EventEmitter} An EventEmitter that publishes a "compile" event after every compile.
+   * @return {Promise}
    */
-  compileTemplateFiles = async files => {
+  compileTemplateFiles = async (files: Array<string>): Promise<void> => {
     const emitter = new EventEmitter();
     const outputDir = this._createOutputDir();
     const { inputDir } = this._options;
@@ -190,7 +200,7 @@ export default class SoyCompiler {
       emitter
     );
 
-    return promisify(emitter.once).bind(emitter)('compile');
+    await promisify(emitter.once).bind(emitter)('compile');
   };
 
   /**
@@ -198,7 +208,7 @@ export default class SoyCompiler {
    * @return {string}
    * @private
    */
-  _createOutputDir = () => {
+  _createOutputDir = (): string => {
     const options = this._options;
     let dir = options.outputDir || options.tmpDir;
     if (options.uniqueDir !== false) {
@@ -220,11 +230,11 @@ export default class SoyCompiler {
    * @private
    */
   _compileTemplateFilesAndEmit = async (
-    inputDir,
-    outputDir,
-    allFiles,
-    dirtyFiles,
-    emitter
+    inputDir: string,
+    outputDir: string,
+    allFiles: Array<string>,
+    dirtyFiles: Array<string>,
+    emitter: EventEmitter
   ) => {
     try {
       await this._compileTemplateFilesAsync(
@@ -251,11 +261,11 @@ export default class SoyCompiler {
    * @private
    */
   _compileTemplateFilesAsync = async (
-    inputDir,
-    outputDir,
-    allFiles,
-    dirtyFiles
-  ) => {
+    inputDir: string,
+    outputDir: string,
+    allFiles: Array<string>,
+    dirtyFiles: Array<string>
+  ): Promise<void> => {
     const options = this._options;
     let outputPathFormat = path.join(
       outputDir,
@@ -322,24 +332,26 @@ export default class SoyCompiler {
 
     let terminated = false;
 
-    async function runCompiler() {
+    async function runCompiler(): Promise<void> {
       return new Promise((resolve, reject) => {
         if (!dirtyFiles.length) {
-          return resolve(true);
+          resolve();
+          return;
         }
 
         let stderr = '';
 
         function onExit(exitCode) {
-          if (terminated) return null;
+          if (terminated) return;
 
           if (exitCode !== 0) {
             // Log all the errors and execute the callback with a generic error object.
             terminated = true;
             console.error('soynode: Compile error\n', stderr);
-            return reject(new Error('Error compiling templates'));
+            reject(new Error('Error compiling templates'));
+            return;
           }
-          return resolve(true);
+          resolve();
         }
 
         // Execute the command inside the input directory.
@@ -355,7 +367,6 @@ export default class SoyCompiler {
         });
 
         cp.on('exit', onExit);
-        return null;
       });
     }
 
@@ -365,7 +376,7 @@ export default class SoyCompiler {
       vmTypes = [...options.locales]; // clone
     }
 
-    const next = async () => {
+    const next = async (): Promise<boolean> => {
       if (vmTypes.length === 0) {
         return true;
       }
@@ -373,7 +384,7 @@ export default class SoyCompiler {
       return next();
     };
 
-    return next();
+    await next();
   };
 
   /**
@@ -384,7 +395,10 @@ export default class SoyCompiler {
    * @param {EventEmitter} emitter
    * @private
    */
-  _compileTemplatesAndEmit = async (inputDir, emitter) => {
+  _compileTemplatesAndEmit = async (
+    inputDir: string,
+    emitter: EventEmitter
+  ) => {
     let files;
     try {
       files = await findFiles(inputDir, 'soy');
@@ -410,7 +424,7 @@ export default class SoyCompiler {
    * @param {EventEmitter} emitter
    * @private
    */
-  _finalizeCompileTemplates = (outputDir, emitter) => {
+  _finalizeCompileTemplates = (outputDir: string, emitter: EventEmitter) => {
     emitCompile(emitter);
 
     if (
@@ -426,7 +440,7 @@ export default class SoyCompiler {
    * loaded.
    * @param {string} inputDir
    */
-  loadCompiledTemplates = async inputDir => {
+  loadCompiledTemplates = async (inputDir: string) => {
     const files = await findFiles(inputDir, 'soy.js');
     const filesMapping = files.map(file => path.join(inputDir, file));
     return this.loadCompiledTemplateFiles(filesMapping);
@@ -437,7 +451,10 @@ export default class SoyCompiler {
    * @param {Array.<string>} files
    * @param {Object} options
    */
-  loadCompiledTemplateFiles = async (files, options) => {
+  loadCompiledTemplateFiles = async (
+    files: Array<string>,
+    options: Object = {}
+  ) => {
     const { vmType } = options;
 
     const soyVmContext = this.getSoyVmContext(vmType);
@@ -453,10 +470,10 @@ export default class SoyCompiler {
    * @private
    */
   _maybeSetupDynamicRecompile = (
-    inputDir,
-    outputDir,
-    relativeFilePaths,
-    emitter
+    inputDir: string,
+    outputDir: string,
+    relativeFilePaths: Array<string>,
+    emitter: EventEmitter
   ) => {
     if (!this._options.allowDynamicRecompile) {
       return;
@@ -525,7 +542,10 @@ export default class SoyCompiler {
    * @return {Promise<Array.<string>>} Files that we could not find precompiled versions of.
    * @private
    */
-  _maybeUsePrecompiledFiles = async (outputDir, files) => {
+  _maybeUsePrecompiledFiles = async (
+    outputDir: string,
+    files: Array<string>
+  ) => {
     const { precompiledDir } = this._options;
     if (!precompiledDir) {
       return files;
@@ -575,10 +595,10 @@ export default class SoyCompiler {
    * @private
    */
   _preparePrecompiledFile = async (
-    outputDir,
-    precompiledDir,
-    file,
-    vmTypes
+    outputDir: string,
+    precompiledDir: string,
+    file: string,
+    vmTypes: Array<string>
   ) => {
     const vmTypesMapping = vmTypes.map(async vmType => {
       const precompiledFileName = this._getOutputFile(
@@ -618,7 +638,7 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @private
    */
-  _concatOutput = (outputDir, files, vmType) => {
+  _concatOutput = (outputDir: string, files: Array<string>, vmType: string) => {
     const options = this._options;
     let { concatFileName } = options;
     if (options.locales && options.locales.length > 1) {
@@ -639,9 +659,12 @@ export default class SoyCompiler {
    * @param {string} file
    * @param {string=} vmType
    */
-  _getOutputFile = (outputDir, file, vmType) => {
+  _getOutputFile = (
+    outputDir: string,
+    file: string,
+    vmType: string = DEFAULT_VM_CONTEXT
+  ) => {
     const options = this._options;
-    vmType = vmType || DEFAULT_VM_CONTEXT;
     if (options.locales && options.locales.length > 1) {
       return `${path.join(outputDir, vmType, file)}.js`;
     }
@@ -656,9 +679,12 @@ export default class SoyCompiler {
    * @return {Promise}
    * @private
    */
-  _postCompileProcess = async (outputDir, files, vmType) => {
+  _postCompileProcess = async (
+    outputDir: string,
+    files: Array<string>,
+    vmType: string = DEFAULT_VM_CONTEXT
+  ) => {
     const options = this._options;
-    vmType = vmType || DEFAULT_VM_CONTEXT;
 
     // Build a list of paths that we expect as output of the soy compiler.
     const templatePaths = files.map(file =>
