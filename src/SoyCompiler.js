@@ -80,9 +80,11 @@ async function findFiles(
  * @constructor
  */
 export default class SoyCompiler {
-  _options: SoyVmContext;
+  _options: Object;
 
-  constructor(options: SoyVmContext = {}) {
+  _defaultOptions: SoyOptions;
+
+  constructor(options: SoyOptions) {
     this._options = this._defaultOptions;
     this.setOptions(options);
   }
@@ -128,7 +130,7 @@ export default class SoyCompiler {
    * @param {string=} vmType optional type of the vm
    * @return {function (Object) : string}
    */
-  get = (templateName: string, vmType: ?string) =>
+  get = (templateName: string, vmType: ?string): ((...any) => string) =>
     this.getSoyVmContext(vmType).get(templateName);
 
   /**
@@ -141,10 +143,10 @@ export default class SoyCompiler {
    */
   render = (
     templateName: string,
-    data: string,
-    injectedData: string,
+    data: ?Object,
+    injectedData: ?Object,
     vmType: string
-  ) =>
+  ): string =>
     // Certain autoescape modes of closure-templates return a Content object
     // instead of a string, so force a string.
     String(this.get(templateName, vmType)(data, null, injectedData));
