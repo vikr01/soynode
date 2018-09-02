@@ -1,3 +1,4 @@
+// @flow
 // Copyright 2014. A Medium Corporation.
 
 import path from 'path';
@@ -23,6 +24,58 @@ const PATH_TO_SOY_UTILS = require.resolve(
  * @constructor
  */
 export default class SoyOptions {
+  $key: any;
+
+  $value: any;
+
+  tmpDir: string;
+
+  inputDir: string;
+
+  outputDir: ?string;
+
+  precompiledDir: ?string;
+
+  uniqueDir: boolean;
+
+  allowDynamicRecompile: boolean;
+
+  loadCompiledTemplates: boolean;
+
+  eraseTemporaryFiles: boolean;
+
+  useClosureStyle: boolean;
+
+  shouldGenerateJsdoc: boolean;
+
+  shouldProvideRequireSoyNamespaces: boolean;
+
+  shouldProvideRequireJsFunctions: boolean;
+
+  cssHandlingScheme: ?string;
+
+  classpath: Array<string>;
+
+  pluginModules: Array<string>;
+
+  contextJsPaths: Array<string>;
+
+  concatOutput: boolean;
+
+  concatFileName: string;
+
+  locales: Array<string>;
+
+  messageFilePathFormat: ?string;
+
+  shouldDeclareTopLevelNamespaces: boolean;
+
+  protoFileDescriptors: string;
+
+  soyJarPath: string;
+
+  soyUtilsPath: string;
+
   /**
    * A temporary directory where compiled .soy.js files will be stored after compilation.
    * @type {string}
@@ -187,7 +240,7 @@ export default class SoyOptions {
   /**
    * Sets options which affect how soynode operates.
    */
-  merge = opts => {
+  merge = (opts: Object) => {
     for (const key in opts) {
       const isFunction = typeof this[key] === 'function';
       if (isFunction && this[key] === opts[key]) {
