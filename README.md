@@ -1,7 +1,7 @@
 # soynode
 
 [![Build Status](https://travis-ci.com/vikr01/soynode.svg?branch=master)](https://travis-ci.com/vikr01/soynode)
-[![CircleCI](https://circleci.com/gh/vikr01/soynode/tree/master.svg?style=svg)](https://circleci.com/gh/vikr01/soynode/tree/master) [![Greenkeeper badge](https://badges.greenkeeper.io/vikr01/soynode.svg)](https://greenkeeper.io/)
+[![Greenkeeper badge](https://badges.greenkeeper.io/vikr01/soynode.svg)](https://greenkeeper.io/)
 
 Utility for working with [Closure Templates](https://developers.google.com/closure/templates/),
 aka Soy, from within a node.js application. Supports dynamic recompilation and loading for fast
