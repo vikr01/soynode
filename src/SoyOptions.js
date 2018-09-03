@@ -240,11 +240,11 @@ export default class SoyOptions {
   /**
    * Sets options which affect how soynode operates.
    */
-  merge = (opts: Object) => {
-    for (const key in opts) {
+  merge = (opts: Object = {}) => {
+    Object.keys(opts).forEach(key => {
       const isFunction = typeof this[key] === 'function';
       if (isFunction && this[key] === opts[key]) {
-        continue;
+        return;
       }
 
       if (!(key in this) || typeof this[key] === 'function') {
@@ -261,6 +261,6 @@ export default class SoyOptions {
       } else {
         this[key] = opts[key];
       }
-    }
+    });
   };
 }
