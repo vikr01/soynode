@@ -5,7 +5,7 @@
     "commonjs": false,
     "es6": true
   },
-  "plugins": ["babel", "import", "flowtype", "promise"],
+  "plugins": ["babel", "import", "flowtype", "promise", "jsdoc"],
   "extends": [
     "eslint:recommended",
     "plugin:import/errors",
@@ -33,7 +33,8 @@
     "guard-for-in": 0,
     // "import/named": 0,
     "import/no-commonjs": "error",
-    // "import/no-dynamic-require": "error",
+    // "import/no-dynamic-require": "error",,
+    "jsdoc/valid-types": "error",
     "no-console": 0,
     "no-continue": 0,
     "no-debugger": 0,

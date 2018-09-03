@@ -110,12 +110,11 @@ export default class SoyCompiler {
 
   /**
    * Sets options which affect how soynode operates.
-   * @param {{
-   *     tmpDir: string=, //Deprecated
-   *     outputDir: string=,
-   *     uniqueDir: boolean=,
-   *     allowDynamicRecompile: boolean=,
-   *     eraseTemporaryFiles: boolean=}}} opts
+   * @param opts.tmDir: string=
+   * @param opts.outputDir: string=
+   * @param opts.uniqueDir: boolean=
+   * @param opts.allowDynamicRecompile: boolean=
+   * @param opts.eraseTemporaryFile: boolean=
    */
   setOptions = (opts: Object) => {
     this._options.merge(opts);
