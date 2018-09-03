@@ -1,9 +1,13 @@
+// @flow
 // Copyright 2014. A Medium Corporation.
 
 import fs from 'fs';
 import vm from 'vm';
 import path from 'path';
 import { promisify } from 'util';
+import type SoyOptions from './SoyOptions';
+
+type pathToPromiseType = { path: string, contents: string };
 
 /**
  * All the dependencies of soyutils_usegoog.js
@@ -64,7 +68,7 @@ const CLOSURE_PATHS = [
   path.join(require.resolve('google-closure-library/package.json'), '..', file)
 );
 
-function pathsToPromises(paths) {
+function pathsToPromises(paths): Array<Promise<pathToPromiseType>> {
   return paths.map(async pathToPromise => {
     const contents = await promisify(fs.readFile)(pathToPromise, 'utf8');
     return {
@@ -79,7 +83,9 @@ let supportFilePromises = null;
 /**
  * @return {Array.<Promise.<string>>} Promises for the file contents of closure/soy support code.
  */
-function getSupportFilePromises(soyUtilsPath) {
+function getSupportFilePromises(
+  soyUtilsPath
+): Array<Promise<pathToPromiseType>> {
   if (supportFilePromises) return supportFilePromises;
 
   const paths = CLOSURE_PATHS.concat([soyUtilsPath]);
@@ -101,14 +107,20 @@ const RESET_DELTEMPLATE_REGISTRY_CODE =
 /**
  * @param {VmContext} context a vm context
  * @param {Array.<Promise>} filePromises Promises of {path, contents} tuples
- * @return {Promise.Promise}
+ * @return {Promise}
  */
-async function loadFiles(context, filePromises) {
+async function loadFiles(
+  /* eslint-disable no-use-before-define */
+  context: SoyVmContext,
+  /* eslint-enable no-use-before-define */
+  filePromises: Array<Promise<pathToPromiseType>>
+): Promise<boolean> {
   let i = 0;
 
-  async function next(result) {
+  async function next(result: pathToPromiseType): Promise<boolean> {
     // Evaluate the template code in the context of the soy VM context.  Any variables defined
     // in the template file will become members of the vmContext object.
+    // $FlowFixMe
     vm.runInContext(result.contents, context, result.path);
 
     if (i >= filePromises.length) {
@@ -133,12 +145,22 @@ async function loadFiles(context, filePromises) {
  * one for each locale.
  */
 export default class SoyVmContext {
+  _name: string;
+
+  _options: SoyOptions;
+
+  _templateCache: Object;
+
+  _context: Object;
+
+  _contextInitialized: boolean;
+
   /**
    * @param {string} name
    * @param {SoyOptions} options
    * @constructor
    */
-  constructor(name, options) {
+  constructor(name: string, options: SoyOptions) {
     /** @private {string} */
     this._name = name;
 
@@ -162,20 +184,20 @@ export default class SoyVmContext {
    * The unique name of the sandbox.
    * @return {string}
    */
-  getName = () => this._name;
+  getName = (): string => this._name;
 
   /**
    * @return {Object} Get the internal vm context. Useful for injecting globals
    *     manually into the context.
    * @return {Object}
    */
-  getContext = () => this._context;
+  getContext = (): Object => this._context;
 
   /**
    * @param {Object} context Sets the context. Useful for injecting globals
    *     manually into the context, but beware of overwriting the soy support code.
    */
-  setContext = context => {
+  setContext = (context: Object) => {
     this._context = context;
   };
 
@@ -187,7 +209,7 @@ export default class SoyVmContext {
    * @param {string} templateName
    * @return {function (Object) : string}
    */
-  get = templateName => {
+  get = (templateName: string): (Object => string) => {
     if (!this._options.loadCompiledTemplates)
       throw new Error(
         'soynode: Cannot load template, try with `loadCompiledTemplates: true`.'
@@ -199,6 +221,7 @@ export default class SoyVmContext {
         template = vm.runInContext(
           templateName,
           this.getContext(),
+          // $FlowFixMe
           'soynode.vm'
         );
       } catch (e) {
@@ -216,7 +239,9 @@ export default class SoyVmContext {
    * Loads an array of template files into memory.
    * @param {Array.<string>} files
    */
-  loadCompiledTemplateFiles = async files => {
+  loadCompiledTemplateFiles = async (
+    files: Array<string>
+  ): Promise<boolean> => {
     const options = this._options;
 
     // load the contextJsPaths into the context before the soy template JS
@@ -227,6 +252,7 @@ export default class SoyVmContext {
       vm.runInContext(
         RESET_DELTEMPLATE_REGISTRY_CODE,
         this.getContext(),
+        // $FlowFixMe
         'soynode-reset.'
       );
     } else {
