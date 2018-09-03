@@ -241,7 +241,15 @@ export default class SoyOptions {
    * Sets options which affect how soynode operates.
    */
   merge = (opts: Object = {}) => {
-    Object.keys(opts).forEach(key => {
+    const { tmpDir, outputDir, ...otherOpts } = opts;
+
+    // When setting the tmpDir make sure to resolve the absolute path so as to avoid accidents
+    // caused by changes to the working directory.
+    if (tmpDir) this.tmpDir = path.resolve(tmpDir);
+
+    if (outputDir) this.outputDir = path.resolve(opts.outputDir);
+
+    Object.keys(otherOpts).forEach(key => {
       const isFunction = typeof this[key] === 'function';
       if (isFunction && this[key] === opts[key]) {
         return;
@@ -251,16 +259,7 @@ export default class SoyOptions {
         throw new Error(`soynode: Invalid option key [${key}]`);
       }
 
-      // When setting the tmpDir make sure to resolve the absolute path so as to avoid accidents
-      // caused by changes to the working directory.
-      if (key === 'tmpDir') {
-        this.tmpDir = path.resolve(opts.tmpDir);
-      } else if (key === 'outputDir') {
-        this.outputDir =
-          opts.outputDir == null ? null : path.resolve(opts.outputDir);
-      } else {
-        this[key] = opts[key];
-      }
+      this[key] = opts[key];
     });
   };
 }
