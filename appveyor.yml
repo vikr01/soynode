@@ -30,7 +30,7 @@ install:
   - set CI=true
   # NOTE: Remove this if your project is private and you don't have a paid greenkeeper account
   - yarn global add greenkeeper-lockfile@2
-  - yarn
+  - yarn install --ignore-scripts
 
 # NOTE: Remove this if your project is private and you don't have a paid greenkeeper account
 before_test:
