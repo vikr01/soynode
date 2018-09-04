@@ -3,10 +3,13 @@
   "description": "Utility for working with Closure Templates, aka Soy, from within a node.js application.",
   "license": "Apache-2.0",
   "author": "Daniel Pupius <dan@medium.com> (https://github.com/dpup)",
-  "homepage": "https://github.com/Medium/soynode",
+  "contributors": [
+    "Vikram Rangaraj <vik120@icloud.com> (https://github.com/vikr01)"
+  ],
+  "homepage": "https://github.com/vikr01/soynode",
   "repository": {
     "type": "git",
-    "url": "http://github.com/Medium/soynode.git"
+    "url": "https://github.com/vikr01/soynode.git"
   },
   "version": "2.1.0",
   "main": "./lib/soynode.js",
