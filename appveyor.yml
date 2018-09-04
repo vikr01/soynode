@@ -26,6 +26,9 @@ shallow_clone: true
 clone_depth: 1
 
 install:
+  - java -version
+  - node --version
+  - yarn --version
   - ps: Install-Product node $env:nodejs_version x64
   - set CI=true
   # NOTE: Remove this if your project is private and you don't have a paid greenkeeper account
@@ -37,11 +40,8 @@ before_test:
   - greenkeeper-lockfile-update
 
 test_script:
-  - java -version
-  - node --version
-  - yarn --version
   - yarn run lint
-  - yarn run flow
+  # - yarn run flow
   - yarn run test
   - yarn run build
 
