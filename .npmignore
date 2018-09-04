@@ -1,9 +1,34 @@
-examples
-test
-src
+# node modules
+node_modules
+
+# npm / yarn
+.npmignore
+.npmrc
+.yarnrc
+
+# config files
+.babel*
+.eslint*
+.flowconfig
 .prettierrc
-.eslintrc
-.circleci
 .travis.yml
 .vscode
 
+# examples files
+examples
+
+# flow
+flow-typed
+
+# test files
+test
+
+# source files
+src
+
+
+# git
+.git*
+
+# logs
+*.log
