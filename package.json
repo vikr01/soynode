@@ -24,6 +24,7 @@
     "test-all": "yarn run test && yarn run lint"
   },
   "dependencies": {
+    "clone": "^2.1.2",
     "events": "^3.0.0",
     "fs-extra": "7.0.0",
     "google-closure-library": "^20180805.0.0",

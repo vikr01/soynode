@@ -100,6 +100,24 @@ describe('Basic', () => {
     child_process.spawn = spawn;
   });
 
+  test('check equivalence between options and default options', () => {
+    const soyCompilerB = new SoyCompiler();
+    const bDefaults = soyCompilerB.getDefaultOptions();
+    bDefaults.fakeKey = 0;
+    expect(soyCompiler.getDefaultOptions()).toEqual(
+      soyCompilerB.getDefaultOptions()
+    );
+    expect(soyCompilerB._options).not.toBe(soyCompilerB.getDefaultOptions());
+  });
+
+  test('make sure default options are not modified', () => {
+    const compiler1 = new SoyCompiler({ allowDynamicRecompile: true });
+    const compiler2 = new SoyCompiler({ allowDynamicRecompile: false });
+    expect(compiler1.getDefaultOptions()).toEqual(
+      compiler2.getDefaultOptions()
+    );
+  });
+
   test('test compile templates', async () => {
     await soyCompiler.compileTemplates(assetsPath);
     assertTemplatesContents();

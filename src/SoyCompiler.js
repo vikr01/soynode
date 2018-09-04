@@ -7,8 +7,12 @@ import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
 import rimraf from 'rimraf';
+import clone from 'clone';
 import SoyVmContext from './SoyVmContext';
 import SoyOptions from './SoyOptions';
+
+/** @private {SoyOptions} */
+const _defaultOptions = JSON.parse(JSON.stringify(new SoyOptions()));
 
 /**
  * The key in vmContexts for the default vm context (with no locale).
@@ -82,15 +86,10 @@ async function findFiles(
 export default class SoyCompiler {
   _options: Object;
 
-  _defaultOptions: SoyOptions;
-
   constructor(options: SoyOptions) {
-    this._options = this._defaultOptions;
+    this._options = new SoyOptions();
     this.setOptions(options);
   }
-
-  _defaultOptions = new SoyOptions();
-  /** @private {SoyOptions} */
 
   /**
    * VM Context that is used as the global when fetching templates.  The end result is that this
@@ -106,7 +105,7 @@ export default class SoyCompiler {
   _watches = {};
 
   /** @return {SoyOptions} */
-  getDefaultOptions = (): SoyOptions => this._defaultOptions;
+  getDefaultOptions = (): SoyOptions => clone(_defaultOptions);
 
   /**
    * Sets options which affect how soynode operates.
