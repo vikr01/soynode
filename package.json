@@ -1,5 +1,5 @@
 {
-  "name": "soynode",
+  "name": "@vikr01/soynode",
   "description": "Utility for working with Closure Templates, aka Soy, from within a node.js application.",
   "license": "Apache-2.0",
   "author": "Daniel Pupius <dan@medium.com> (https://github.com/dpup)",
