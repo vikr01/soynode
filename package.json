@@ -52,7 +52,7 @@
     "eslint-plugin-babel": "^5.1.0",
     "eslint-plugin-flowtype": "^2.50.0",
     "eslint-plugin-import": "^2.14.0",
-    "eslint-plugin-jest": "^21.22.0",
+    "eslint-plugin-jest": "21.22.0",
     "eslint-plugin-jsdoc": "^3.8.0",
     "eslint-plugin-mocha": "^5.2.0",
     "eslint-plugin-promise": "^4.0.0",
